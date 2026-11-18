@@ -37,7 +37,6 @@
   </script>
 
   <style>
-    /* Custom scrollbar & royal blue/gold theme matching the official emblem */
     body {
       background-color: #f1f5f9;
       color: #1e293b;
@@ -49,15 +48,24 @@
                         linear-gradient(135deg, #091528 0%, #0f294a 55%, #071222 100%);
       background-size: 24px 24px, 100% 100%;
     }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950">
 
-  <!-- Toast Notification Container (Replaces alert/confirm) -->
-  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0 no-print"></div>
 
-  <!-- Confirmation Dialog Modal (Replaces window.confirm) -->
-  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+  <!-- Confirmation Dialog Modal -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all">
       <div class="flex items-center gap-3 mb-3">
         <div id="confirmIconBox" class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
@@ -67,10 +75,10 @@
       </div>
       <p id="confirmMessage" class="text-sm text-slate-600 mb-6 leading-relaxed">Are you sure you want to proceed?</p>
       <div class="flex justify-end gap-3">
-        <button id="confirmCancelBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+        <button id="confirmCancelBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer">
           Cancel
         </button>
-        <button id="confirmProceedBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm">
+        <button id="confirmProceedBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm cursor-pointer">
           Confirm
         </button>
       </div>
@@ -78,13 +86,12 @@
   </div>
 
   <!-- ==================== CLUB HEADER ==================== -->
-  <header class="club-header-pattern text-white shadow-xl border-b-4 border-amber-400">
+  <header class="club-header-pattern text-white shadow-xl border-b-4 border-amber-400 no-print">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         
         <!-- Club Logo & Title -->
         <div class="flex items-center gap-4">
-          <!-- Official Falsonda Cricket Club Emblem Image -->
           <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-700 p-0.5 shadow-2xl shrink-0">
             <img src="Designer (12)_2.png" alt="Falsonda Cricket Club Logo" 
                  class="w-full h-full object-cover rounded-[14px]"
@@ -108,43 +115,49 @@
           </div>
         </div>
 
-        <!-- Currency Badge & Quick Actions -->
+        <!-- Currency Badge, Admin Lock Toggle & Quick Actions -->
         <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <!-- Admin Lock / Relogin Button -->
+          <button id="headerLockAdminBtn" type="button" onclick="lockAdminSession()" title="Lock Admin Session"
+            class="hidden admin-lock-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600/90 hover:bg-rose-600 text-white transition shadow-xs cursor-pointer">
+            <i class="fa-solid fa-lock"></i>
+            <span>Lock Admin</span>
+          </button>
+
           <!-- Live Cloud Sync Status Badge -->
           <div id="syncStatusBadge" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-slate-950/70 border border-blue-500/30 text-blue-200 shadow-xs">
-            <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-            <span id="syncStatusText">Connecting Cloud...</span>
+            <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="syncStatusText">Synced Live</span>
           </div>
 
           <!-- Static Currency Badge (INR Only) -->
-          <div class="flex items-center bg-white/10 backdrop-blur-xs border border-white/15 rounded-xl px-3.5 py-2">
+          <div class="hidden sm:flex items-center bg-white/10 backdrop-blur-xs border border-white/15 rounded-xl px-3.5 py-2">
             <span class="text-xs font-semibold text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-indian-rupee-sign text-amber-400"></i>
-              <span>Currency:</span>
               <strong class="text-white font-extrabold">INR (₹)</strong>
             </span>
           </div>
 
           <!-- JSON Backup / Restore Dropdown -->
           <div class="relative" id="backupMenuWrapper">
-            <button id="backupMenuBtn" type="button" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition">
+            <button id="backupMenuBtn" type="button" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition cursor-pointer">
               <i class="fa-solid fa-database text-amber-400"></i>
               <span>Backup / Data</span>
               <i class="fa-solid fa-chevron-down text-[10px] opacity-80"></i>
             </button>
             <div id="backupDropdown" class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-xl border border-slate-200 py-2 z-40 text-slate-700">
-              <button id="exportJsonBtn" type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2.5 font-medium">
+              <button id="exportJsonBtn" type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2.5 font-medium cursor-pointer">
                 <i class="fa-solid fa-download text-blue-700 w-4"></i> Download JSON Backup
               </button>
-              <label class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2.5 font-medium cursor-pointer">
+              <label class="admin-only w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2.5 font-medium cursor-pointer">
                 <i class="fa-solid fa-upload text-blue-600 w-4"></i> Import JSON to Cloud
                 <input type="file" id="importJsonInput" accept=".json" class="hidden" />
               </label>
-              <div class="my-1 border-t border-slate-100"></div>
-              <button id="restoreOfficialBtn" type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 text-blue-800 flex items-center gap-2.5 font-medium">
+              <div class="admin-only my-1 border-t border-slate-100"></div>
+              <button id="restoreOfficialBtn" type="button" class="admin-only w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 text-blue-800 flex items-center gap-2.5 font-medium cursor-pointer">
                 <i class="fa-solid fa-rotate-left w-4"></i> Sync Initial Club Records
               </button>
-              <button id="resetAllBtn" type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-rose-50 text-rose-600 flex items-center gap-2.5 font-medium">
+              <button id="resetAllBtn" type="button" class="admin-only w-full text-left px-4 py-2.5 text-sm hover:bg-rose-50 text-rose-600 flex items-center gap-2.5 font-medium cursor-pointer">
                 <i class="fa-solid fa-trash-can w-4"></i> Erase All Cloud Records
               </button>
             </div>
@@ -154,6 +167,19 @@
       </div>
     </div>
   </header>
+
+  <!-- Read-Only Visitor Notice Banner -->
+  <div id="visitorBanner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs sm:text-sm text-amber-950 no-print">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-eye text-amber-600"></i>
+        <span><strong>Read-Only Visitor Mode:</strong> You are viewing the public club ledger. Adding, editing, or deleting records is locked.</span>
+      </div>
+      <button type="button" onclick="openAdminModal()" class="text-xs font-extrabold text-blue-900 underline hover:text-blue-700 cursor-pointer">
+        Treasurer PIN Login →
+      </button>
+    </div>
+  </div>
 
   <!-- ==================== MAIN CONTENT ==================== -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
@@ -232,17 +258,17 @@
     </section>
 
     <!-- ==================== 2. FORM + LEDGER GRID ==================== -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+    <div id="mainContentGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
 
-      <!-- LEFT COLUMN: DIGITAL ENTRY FORM (5 cols on lg) -->
-      <section class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden">
+      <!-- LEFT COLUMN: DIGITAL ENTRY FORM (Admin Only) -->
+      <section id="adminEntryFormSection" class="admin-only lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden no-print">
         
         <!-- Form Header & Mode Switcher -->
         <div class="p-5 sm:p-6 bg-slate-50/80 border-b border-slate-200">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 id="formHeading" class="font-display text-lg font-extrabold text-slate-900">
-                Digital Entry Form
+                Record Collection Receipt
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">Record official club income or expense voucher</p>
             </div>
@@ -254,12 +280,12 @@
           <!-- Toggle Tabs: Record Collection vs Record Expense -->
           <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-200/70 rounded-xl" role="tablist">
             <button type="button" id="tabCollection" role="tab" aria-selected="true"
-              class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-[#0f294a] text-white shadow-sm">
+              class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-[#0f294a] text-white shadow-sm cursor-pointer">
               <i class="fa-solid fa-circle-plus text-amber-400"></i>
               <span>Record Collection</span>
             </button>
             <button type="button" id="tabExpense" role="tab" aria-selected="false"
-              class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+              class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer">
               <i class="fa-solid fa-circle-minus"></i>
               <span>Record Expense</span>
             </button>
@@ -282,7 +308,7 @@
                   class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 transition"
                   placeholder="FCC-2026-001" />
                 <button type="button" id="regenReceiptBtn" title="Generate Next Sequential ID"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-700 p-1">
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-700 p-1 cursor-pointer">
                   <i class="fa-solid fa-rotate text-xs"></i>
                 </button>
               </div>
@@ -320,7 +346,6 @@
               </label>
               <select id="categorySelect" required
                 class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 transition">
-                <!-- Populated dynamically via JS -->
               </select>
             </div>
 
@@ -367,26 +392,25 @@
           <!-- Form Submit & Cancel Buttons -->
           <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
             <button type="submit" id="submitRecordBtn"
-              class="flex-1 py-3 px-5 rounded-xl font-bold text-sm text-white bg-[#0f294a] hover:bg-[#091528] active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2">
+              class="flex-1 py-3 px-5 rounded-xl font-bold text-sm text-white bg-[#0f294a] hover:bg-[#091528] active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2 cursor-pointer">
               <i class="fa-solid fa-check-circle text-amber-400"></i>
               <span id="submitBtnText">Save Collection Receipt</span>
             </button>
             <button type="button" id="cancelEditBtn"
-              class="hidden py-3 px-4 rounded-xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+              class="hidden py-3 px-4 rounded-xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer">
               Cancel
             </button>
           </div>
         </form>
       </section>
 
-      <!-- RIGHT COLUMN: LIVE LEDGER & FILTERABLE RECORDS TABLE (7 cols on lg) -->
-      <section id="ledgerPrintSection" class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col">
+      <!-- RIGHT COLUMN: LIVE LEDGER & FILTERABLE RECORDS TABLE -->
+      <section id="ledgerSection" class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col">
         
         <!-- Print-only Official Header -->
         <div class="hidden print:block p-6 border-b-2 border-[#0f294a] text-center">
           <h1 class="text-2xl font-extrabold text-[#091528]">FALSONDA CRICKET CLUB (EST. 2007)</h1>
           <p class="text-sm text-slate-600 font-semibold mt-1">Official Collection & Expenses Financial Statement</p>
-          <p id="printLedgerMeta" class="text-xs text-slate-500 mt-1"></p>
         </div>
 
         <!-- Ledger Header & Export Controls -->
@@ -403,12 +427,12 @@
 
           <div class="flex flex-wrap items-center gap-2">
             <button type="button" id="exportCsvBtn"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200 transition">
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200 transition cursor-pointer">
               <i class="fa-solid fa-file-excel text-blue-700"></i>
               <span>Export CSV</span>
             </button>
             <button type="button" id="printLedgerBtn"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200 transition">
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200 transition cursor-pointer">
               <i class="fa-solid fa-print text-slate-700"></i>
               <span>Print Ledger</span>
             </button>
@@ -417,7 +441,6 @@
 
         <!-- Search & Filters Bar -->
         <div class="p-4 sm:px-6 bg-slate-50/70 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3 no-print">
-          <!-- Search Input -->
           <div class="sm:col-span-4 relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
               <i class="fa-solid fa-magnifying-glass"></i>
@@ -427,7 +450,6 @@
               placeholder="Search name, receipt #..." />
           </div>
 
-          <!-- Filter by Type -->
           <div class="sm:col-span-3">
             <select id="filterType"
               class="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-700">
@@ -437,7 +459,6 @@
             </select>
           </div>
 
-          <!-- Filter by Payment Mode -->
           <div class="sm:col-span-2">
             <select id="filterPayment"
               class="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-700">
@@ -450,7 +471,6 @@
             </select>
           </div>
 
-          <!-- Filter by Category -->
           <div class="sm:col-span-3">
             <select id="filterCategory"
               class="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-700">
@@ -472,7 +492,6 @@
               </tr>
             </thead>
             <tbody id="recordsTableBody" class="divide-y divide-slate-100 text-sm">
-              <!-- Rows dynamically rendered by JavaScript -->
             </tbody>
           </table>
 
@@ -514,11 +533,11 @@
         </span>
         <div class="flex items-center gap-2">
           <button type="button" id="printSingleReceiptBtn"
-            class="px-3.5 py-1.5 rounded-xl bg-[#0f294a] hover:bg-[#091528] text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs">
+            class="px-3.5 py-1.5 rounded-xl bg-[#0f294a] hover:bg-[#091528] text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer">
             <i class="fa-solid fa-print"></i> Print / Save PDF
           </button>
           <button type="button" id="closeReceiptModalBtn"
-            class="w-8 h-8 rounded-xl bg-white hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+            class="w-8 h-8 rounded-xl bg-white hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -526,11 +545,10 @@
 
       <!-- Printable Receipt Area -->
       <div id="receiptPrintArea" class="p-6 sm:p-8 bg-white">
-        <!-- Club Letterhead with Logo -->
         <div class="border-b-2 border-amber-400 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-3.5">
             <div class="w-16 h-16 rounded-xl bg-[#091528] p-0.5 border-2 border-amber-400 shrink-0">
-              <img src="Designer (12)_2.png" alt="FCC Logo" class="w-full h-full object-cover rounded-[10px]" onerror="this.style.display='none'" />
+              <img src="Designer (12)_2.png" alt="FCC Logo" class="w-full h-full object-cover rounded-[10px]" onerror="this.src='https://placehold.co/160x160/0f294a/d4af37?text=FCC'" />
             </div>
             <div>
               <h2 class="font-display text-lg sm:text-xl font-extrabold text-[#091528] tracking-tight">
@@ -547,7 +565,6 @@
           </div>
         </div>
 
-        <!-- Receipt Metadata Grid -->
         <div class="grid grid-cols-2 gap-4 py-5 border-b border-slate-200 text-sm">
           <div>
             <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Issued</span>
@@ -563,7 +580,6 @@
           </div>
         </div>
 
-        <!-- Line Item Details -->
         <div class="py-5 border-b border-slate-200">
           <table class="w-full text-sm">
             <thead>
@@ -586,1104 +602,704 @@
           </table>
         </div>
 
-        <!-- Total Highlight Box -->
-        <div class="mt-5 p-4 rounded-xl bg-blue-50/80 border border-blue-200 flex items-center justify-between">
-          <span class="text-xs font-extrabold uppercase tracking-wider text-blue-950">Total Verified Amount</span>
-          <span id="modalTotalHighlight" class="text-xl font-extrabold text-blue-900 font-display">₹ 1,500.00</span>
+        <div class="py-5 flex items-center justify-between">
+          <span class="text-sm font-bold text-slate-600 uppercase tracking-wider">Total Amount</span>
+          <span id="modalTotalBig" class="text-2xl font-extrabold text-emerald-700 font-display">₹ 1,500.00</span>
         </div>
 
-        <!-- Official Signature Lines -->
-        <div class="mt-12 pt-4 grid grid-cols-2 gap-8 text-center">
+        <div class="pt-8 mt-6 border-t border-dashed border-slate-300 flex items-end justify-between text-xs text-slate-500">
           <div>
-            <div class="border-b border-dashed border-slate-400 h-8 mb-1.5"></div>
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Treasurer / Captain Sign</p>
+            <p class="font-bold text-slate-700">Falsonda Cricket Club (Est. 2007)</p>
+            <p class="mt-0.5">Computer generated official digital ledger receipt.</p>
           </div>
-          <div>
-            <div class="border-b border-dashed border-slate-400 h-8 mb-1.5"></div>
-            <p id="modalReceiverSignLabel" class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Member / Payee Sign</p>
+          <div class="text-center">
+            <div class="h-10 border-b border-slate-400 mb-1 w-36"></div>
+            <p class="font-bold text-slate-700">Treasurer Signature</p>
           </div>
         </div>
-
-        <p class="text-center text-[10px] text-slate-400 mt-6">
-          Generated digitally by Falsonda Cricket Club (Est. 2007) Financial Management System.
-        </p>
       </div>
     </div>
   </div>
 
-  <!-- ==================== FOOTER ==================== -->
-  <footer class="bg-white border-t border-slate-200 py-5 mt-10 no-print">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-      <div class="font-semibold text-slate-700">
-        FALSONDA CRICKET CLUB <span class="text-blue-800 font-bold">(Est. 2007)</span> — Official Collection & Expenses Portal
+  <!-- ==================== ADMIN LOGIN MODAL & PIN LOCK LOGIC ==================== -->
+  <div id="adminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 no-print">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-7 shadow-2xl border border-slate-200 text-center transform transition-all">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center mx-auto mb-4 shadow-md">
+        <i class="fa-solid fa-lock text-2xl"></i>
       </div>
-      <div>
-        Real-time cloud synced across all club devices. Use <strong>Export CSV</strong> or <strong>Backup</strong> anytime.
-      </div>
+      <h3 class="text-xl font-extrabold text-slate-900 font-display">Treasurer PIN Verification</h3>
+      <p class="text-xs text-slate-500 mt-1 mb-5 leading-relaxed">
+        Enter the confidential admin PIN to unlock editing controls, or view the ledger in read-only mode.
+      </p>
+
+      <form onsubmit="event.preventDefault(); verifyAdminPin();" class="space-y-3.5">
+        <div>
+          <input type="password" id="adminPinInput" placeholder="••••" maxlength="4" autofocus autocomplete="current-password"
+            class="w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-2xl font-extrabold text-center tracking-widest text-slate-900 focus:outline-none focus:border-blue-700 transition" />
+        </div>
+        
+        <button type="submit"
+          class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-[#0f294a] hover:bg-[#091528] transition shadow-md flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <span>Verify & Unlock Admin</span>
+        </button>
+
+        <button type="button" onclick="continueReadOnly()"
+          class="w-full py-2.5 px-4 rounded-xl font-semibold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer">
+          View as Visitor (Read-Only)
+        </button>
+      </form>
     </div>
-  </footer>
+  </div>
 
-  <!-- ==================== FIREBASE CLOUD SYNC & APPLICATION LOGIC ==================== -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      setDoc,
-      updateDoc,
-      deleteDoc,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    const ADMIN_PIN = "2007";
 
-    // --- Constants & Configuration ---
-    const COLLECTION_CATEGORIES = [
-      'Donation / Sponsorship',
-      'Match Fees',
-      'Membership/Subscription',
-      'Tournament Entry',
-      'Jersey & Kit',
-      'Miscellaneous'
+    const INITIAL_RECORDS = [
+      {
+        id: "rec_1",
+        type: "Collection",
+        receiptNo: "FCC-2026-001",
+        date: "2026-11-01",
+        partyName: "Hasan Tambe",
+        category: "Club Donation",
+        paymentMode: "UPI Payment",
+        amount: 2500,
+        notes: "Initial donation towards Falsonda Cricket Club ledger & kits."
+      },
+      {
+        id: "rec_2",
+        type: "Collection",
+        receiptNo: "FCC-2026-002",
+        date: "2026-11-05",
+        partyName: "Samir Tisekar",
+        category: "Club Donation",
+        paymentMode: "Bank Transfer",
+        amount: 2000,
+        notes: "Contribution for tournament practice sessions."
+      },
+      {
+        id: "rec_3",
+        type: "Expense",
+        receiptNo: "FCC-2026-003",
+        date: "2026-11-08",
+        partyName: "Furus Sports Store",
+        category: "Kit & Equipment",
+        paymentMode: "Cash",
+        amount: 1800,
+        notes: "Purchased leather match balls for practice."
+      },
+      {
+        id: "rec_4",
+        type: "Collection",
+        receiptNo: "FCC-2026-004",
+        date: "2026-11-12",
+        partyName: "Dildar Parkar",
+        category: "Match Fees",
+        paymentMode: "UPI Payment",
+        amount: 1000,
+        notes: "Tournament entry fee installment."
+      }
     ];
 
-    const EXPENSE_CATEGORIES = [
-      'Printing & Stationery',
-      'Ground Booking',
-      'Cricket Balls & Gear',
-      'Refreshments & Water',
-      'Tournament Entry',
-      'Jersey & Kit',
-      'Umpire & Scorer Fee',
-      'Travel/Transport',
-      'Miscellaneous'
-    ];
-
-    const CURRENCY_CONFIG = {
-      decimals: 2,
-      symbol: '₹',
-      code: 'INR',
-      locale: 'en-IN'
+    const CATEGORIES = {
+      Collection: ["Club Donation", "Match Fees", "Sponsorship", "Jersey Contribution", "Ground Fund", "Other Collection"],
+      Expense: ["Kit & Equipment", "Ground Booking", "Umpire Fees", "Refreshments", "Printing & Stationery", "Travel & Transport", "Other Expense"]
     };
 
-    // --- Application State ---
     let records = [];
-    const currentCurrency = 'INR';
-    let activeFormType = 'Collection';
-    let db = null;
-    let auth = null;
-    let currentUser = null;
-    let isCloudConnected = false;
-    let hasCheckedInitialSeed = false;
+    let currentTransactionType = 'Collection';
 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'falsonda-cricket-club';
-
-    // --- DOM Elements ---
-    const syncStatusDot = document.getElementById('syncStatusDot');
-    const syncStatusText = document.getElementById('syncStatusText');
+    const recordsTableBody = document.getElementById('recordsTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const recordForm = document.getElementById('recordForm');
     const tabCollection = document.getElementById('tabCollection');
     const tabExpense = document.getElementById('tabExpense');
-    const recordForm = document.getElementById('recordForm');
-    const editRecordId = document.getElementById('editRecordId');
     const transactionTypeInput = document.getElementById('transactionType');
-    const receiptNoInput = document.getElementById('receiptNo');
+    const formHeading = document.getElementById('formHeading');
     const receiptLabel = document.getElementById('receiptLabel');
-    const entryDateInput = document.getElementById('entryDate');
-    const partyNameInput = document.getElementById('partyName');
     const partyLabel = document.getElementById('partyLabel');
     const categorySelect = document.getElementById('categorySelect');
-    const paymentModeSelect = document.getElementById('paymentMode');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const receiptNoInput = document.getElementById('receiptNo');
+    const entryDateInput = document.getElementById('entryDate');
+    const partyNameInput = document.getElementById('partyName');
+    const paymentModeInput = document.getElementById('paymentMode');
     const amountInput = document.getElementById('amountInput');
     const notesInput = document.getElementById('notesInput');
-    const submitRecordBtn = document.getElementById('submitRecordBtn');
-    const submitBtnText = document.getElementById('submitBtnText');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const editRecordIdInput = document.getElementById('editRecordId');
     const editingBadge = document.getElementById('editingBadge');
-    const regenReceiptBtn = document.getElementById('regenReceiptBtn');
-
-    // Summary Stat Elements
-    const statTotalCollection = document.getElementById('statTotalCollection');
-    const statCollectionSub = document.getElementById('statCollectionSub');
-    const statTotalExpenses = document.getElementById('statTotalExpenses');
-    const statExpensesSub = document.getElementById('statExpensesSub');
-    const statNetBalance = document.getElementById('statNetBalance');
-    const statBalanceStatus = document.getElementById('statBalanceStatus');
-    const statTotalCount = document.getElementById('statTotalCount');
-
-    // Table & Filters Elements
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    
     const searchInput = document.getElementById('searchInput');
     const filterType = document.getElementById('filterType');
     const filterPayment = document.getElementById('filterPayment');
     const filterCategory = document.getElementById('filterCategory');
-    const recordsTableBody = document.getElementById('recordsTableBody');
-    const emptyState = document.getElementById('emptyState');
+
+    const statTotalCollection = document.getElementById('statTotalCollection');
+    const statTotalExpenses = document.getElementById('statTotalExpenses');
+    const statNetBalance = document.getElementById('statNetBalance');
+    const statTotalCount = document.getElementById('statTotalCount');
+    const statCollectionSub = document.getElementById('statCollectionSub');
+    const statExpensesSub = document.getElementById('statExpensesSub');
     const filteredBadge = document.getElementById('filteredBadge');
     const footerVisibleCount = document.getElementById('footerVisibleCount');
     const footerFilteredIn = document.getElementById('footerFilteredIn');
     const footerFilteredOut = document.getElementById('footerFilteredOut');
 
-    // Backup Menu
     const backupMenuBtn = document.getElementById('backupMenuBtn');
     const backupDropdown = document.getElementById('backupDropdown');
-    const exportJsonBtn = document.getElementById('exportJsonBtn');
-    const importJsonInput = document.getElementById('importJsonInput');
-    const restoreOfficialBtn = document.getElementById('restoreOfficialBtn');
-    const resetAllBtn = document.getElementById('resetAllBtn');
-    const exportCsvBtn = document.getElementById('exportCsvBtn');
-    const printLedgerBtn = document.getElementById('printLedgerBtn');
 
-    // Receipt Modal Elements
-    const receiptModal = document.getElementById('receiptModal');
-    const closeReceiptModalBtn = document.getElementById('closeReceiptModalBtn');
-    const printSingleReceiptBtn = document.getElementById('printSingleReceiptBtn');
+    // Admin & Read-Only Mode Functions
+    function isAdminUnlocked() {
+      return localStorage.getItem('fcc_is_admin') === 'true';
+    }
 
-    // --- Cloud Status Indicator ---
-    function setSyncStatus(state, customText) {
-      if (state === 'synced') {
-        syncStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
-        syncStatusText.textContent = customText || 'Live Cloud Synced';
-      } else if (state === 'syncing') {
-        syncStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping';
-        syncStatusText.textContent = customText || 'Syncing...';
+    function openAdminModal() {
+      const modal = document.getElementById('adminModal');
+      modal.style.display = 'flex';
+      const pinInput = document.getElementById('adminPinInput');
+      pinInput.value = '';
+      setTimeout(() => pinInput.focus(), 50);
+    }
+
+    function lockAdminSession() {
+      localStorage.removeItem('fcc_is_admin');
+      document.getElementById('adminPinInput').value = '';
+      document.getElementById('adminModal').style.display = 'flex';
+      disableAdminFeatures();
+      showToast('Admin session locked.', 'info');
+    }
+
+    function verifyAdminPin() {
+      const input = document.getElementById('adminPinInput').value;
+      if (input === ADMIN_PIN) {
+        localStorage.setItem('fcc_is_admin', 'true');
+        document.getElementById('adminModal').style.display = 'none';
+        enableAdminFeatures();
+        showToast('Admin access granted! Editing unlocked.', 'success');
       } else {
-        syncStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-400';
-        syncStatusText.textContent = customText || 'Offline Mode';
+        showToast('Incorrect PIN! Please try again.', 'warning');
+        document.getElementById('adminPinInput').value = '';
+        document.getElementById('adminPinInput').focus();
       }
     }
 
-    // --- Utility Functions ---
-    function getTodayISO() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    function continueReadOnly() {
+      localStorage.removeItem('fcc_is_admin');
+      document.getElementById('adminModal').style.display = 'none';
+      disableAdminFeatures();
+      showToast('Opened in Read-Only Visitor Mode.', 'info');
     }
 
-    function formatDisplayDate(isoDate) {
-      if (!isoDate) return '';
-      const parts = isoDate.split('-');
-      if (parts.length !== 3) return isoDate;
-      const dateObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      return dateObj.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
+    function enableAdminFeatures() {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.classList.remove('hidden');
+        el.style.display = '';
+      });
+
+      document.querySelectorAll('.admin-lock-btn').forEach(el => {
+        el.classList.remove('hidden');
+        el.style.display = '';
+      });
+
+      const ledgerSection = document.getElementById('ledgerSection');
+      ledgerSection.classList.remove('lg:col-span-12');
+      ledgerSection.classList.add('lg:col-span-7');
+
+      document.getElementById('visitorBanner').classList.add('hidden');
+    }
+
+    function disableAdminFeatures() {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      document.querySelectorAll('.admin-lock-btn').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      // Expand Ledger Table to full width when Digital Entry Form is hidden
+      const ledgerSection = document.getElementById('ledgerSection');
+      ledgerSection.classList.remove('lg:col-span-7');
+      ledgerSection.classList.add('lg:col-span-12');
+
+      document.getElementById('visitorBanner').classList.remove('hidden');
+    }
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      entryDateInput.value = new Date().toISOString().split('T')[0];
+
+      const saved = localStorage.getItem('fcc_ledger_records');
+      if (saved) {
+        try {
+          records = JSON.parse(saved);
+        } catch(e) {
+          records = [...INITIAL_RECORDS];
+        }
+      } else {
+        records = [...INITIAL_RECORDS];
+        saveToStorage();
+      }
+
+      setupCategoriesForType('Collection');
+      generateNextReceiptNumber('Collection');
+      populateCategoryFilterOptions();
+      renderRecords();
+
+      // Check saved Admin PIN status
+      if (isAdminUnlocked()) {
+        document.getElementById('adminModal').style.display = 'none';
+        enableAdminFeatures();
+      } else {
+        disableAdminFeatures();
+      }
+
+      // Event Listeners
+      tabCollection.addEventListener('click', () => switchTab('Collection'));
+      tabExpense.addEventListener('click', () => switchTab('Expense'));
+
+      document.getElementById('regenReceiptBtn').addEventListener('click', () => {
+        generateNextReceiptNumber(currentTransactionType);
+      });
+
+      recordForm.addEventListener('submit', handleFormSubmit);
+      cancelEditBtn.addEventListener('click', resetForm);
+
+      searchInput.addEventListener('input', renderRecords);
+      filterType.addEventListener('change', renderRecords);
+      filterPayment.addEventListener('change', renderRecords);
+      filterCategory.addEventListener('change', renderRecords);
+
+      backupMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        backupDropdown.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => {
+        backupDropdown.classList.add('hidden');
+      });
+
+      document.getElementById('exportJsonBtn').addEventListener('click', exportJsonBackup);
+      document.getElementById('importJsonInput').addEventListener('change', importJsonBackup);
+      document.getElementById('restoreOfficialBtn').addEventListener('click', () => {
+        showConfirm('Restore Official Records', 'This will reset records to initial club sample data. Proceed?', () => {
+          records = [...INITIAL_RECORDS];
+          saveToStorage();
+          renderRecords();
+          showToast('Official records restored successfully!', 'success');
+        });
+      });
+      document.getElementById('resetAllBtn').addEventListener('click', () => {
+        showConfirm('Erase All Records', 'Are you sure you want to clear all transactions from the ledger?', () => {
+          records = [];
+          saveToStorage();
+          renderRecords();
+          showToast('Ledger cleared.', 'warning');
+        });
+      });
+
+      document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+      document.getElementById('printLedgerBtn').addEventListener('click', () => window.print());
+
+      document.getElementById('closeReceiptModalBtn').addEventListener('click', closeReceiptModal);
+      document.getElementById('printSingleReceiptBtn').addEventListener('click', () => window.print());
+    });
+
+    function saveToStorage() {
+      localStorage.setItem('fcc_ledger_records', JSON.stringify(records));
+      document.getElementById('syncStatusText').textContent = 'Synced Live';
+    }
+
+    function switchTab(type) {
+      currentTransactionType = type;
+      transactionTypeInput.value = type;
+
+      if (type === 'Collection') {
+        tabCollection.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-[#0f294a] text-white shadow-sm cursor-pointer";
+        tabExpense.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer";
+        formHeading.textContent = "Record Collection Receipt";
+        receiptLabel.textContent = "Receipt No.";
+        partyLabel.textContent = "Member / Contributor Name";
+        submitBtnText.textContent = "Save Collection Receipt";
+      } else {
+        tabExpense.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-rose-600 text-white shadow-sm cursor-pointer";
+        tabCollection.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer";
+        formHeading.textContent = "Record Expense Voucher";
+        receiptLabel.textContent = "Voucher No.";
+        partyLabel.textContent = "Paid To / Vendor Name";
+        submitBtnText.textContent = "Save Expense Voucher";
+      }
+
+      setupCategoriesForType(type);
+      if (!editRecordIdInput.value) {
+        generateNextReceiptNumber(type);
+      }
+    }
+
+    function setupCategoriesForType(type) {
+      categorySelect.innerHTML = '';
+      const list = CATEGORIES[type] || [];
+      list.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
       });
     }
 
-    function formatAmount(num) {
-      const val = Number(num) || 0;
-      return `${CURRENCY_CONFIG.symbol} ${val.toLocaleString(CURRENCY_CONFIG.locale, {
-        minimumFractionDigits: CURRENCY_CONFIG.decimals,
-        maximumFractionDigits: CURRENCY_CONFIG.decimals
-      })}`;
+    function populateCategoryFilterOptions() {
+      const allCats = new Set();
+      Object.values(CATEGORIES).forEach(arr => arr.forEach(c => allCats.add(c)));
+      
+      filterCategory.innerHTML = '<option value="ALL">All Categories</option>';
+      allCats.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        filterCategory.appendChild(opt);
+      });
     }
 
-    function escapeHTML(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    function generateNextReceiptNumber(type) {
+      const prefix = type === 'Collection' ? 'FCC-COL-' : 'FCC-EXP-';
+      const count = records.filter(r => r.type === type).length + 1;
+      const numStr = String(count).padStart(3, '0');
+      receiptNoInput.value = prefix + numStr;
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      if (!isAdminUnlocked()) {
+        showToast('Admin PIN required to save records.', 'warning');
+        return;
+      }
+
+      const id = editRecordIdInput.value || 'rec_' + Date.now();
+      const type = currentTransactionType;
+      const receiptNo = receiptNoInput.value.trim();
+      const date = entryDateInput.value;
+      const partyName = partyNameInput.value.trim();
+      const category = categorySelect.value;
+      const paymentMode = paymentModeInput.value;
+      const amount = parseFloat(amountInput.value);
+      const notes = notesInput.value.trim();
+
+      if (!receiptNo || !date || !partyName || isNaN(amount) || amount <= 0) {
+        showToast('Please fill out all required fields correctly.', 'warning');
+        return;
+      }
+
+      const recordObj = { id, type, receiptNo, date, partyName, category, paymentMode, amount, notes };
+
+      const existingIndex = records.findIndex(r => r.id === id);
+      if (existingIndex >= 0) {
+        records[existingIndex] = recordObj;
+        showToast('Record updated successfully!', 'success');
+      } else {
+        records.unshift(recordObj);
+        showToast('New transaction saved successfully!', 'success');
+      }
+
+      saveToStorage();
+      renderRecords();
+      resetForm();
+    }
+
+    function resetForm() {
+      recordForm.reset();
+      editRecordIdInput.value = '';
+      editingBadge.classList.add('hidden');
+      cancelEditBtn.classList.add('hidden');
+      entryDateInput.value = new Date().toISOString().split('T')[0];
+      switchTab('Collection');
+    }
+
+    function editRecord(id) {
+      if (!isAdminUnlocked()) return;
+      const rec = records.find(r => r.id === id);
+      if (!rec) return;
+
+      switchTab(rec.type);
+      editRecordIdInput.value = rec.id;
+      receiptNoInput.value = rec.receiptNo;
+      entryDateInput.value = rec.date;
+      partyNameInput.value = rec.partyName;
+      categorySelect.value = rec.category;
+      paymentModeInput.value = rec.paymentMode;
+      amountInput.value = rec.amount;
+      notesInput.value = rec.notes || '';
+
+      editingBadge.classList.remove('hidden');
+      cancelEditBtn.classList.remove('hidden');
+      submitBtnText.textContent = rec.type === 'Collection' ? 'Update Collection Receipt' : 'Update Expense Voucher';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteRecord(id) {
+      if (!isAdminUnlocked()) return;
+      showConfirm('Delete Record', 'Are you sure you want to delete this transaction from the ledger?', () => {
+        records = records.filter(r => r.id !== id);
+        saveToStorage();
+        renderRecords();
+        showToast('Record deleted.', 'info');
+      });
+    }
+
+    function renderRecords() {
+      const search = searchInput.value.toLowerCase().trim();
+      const fType = filterType.value;
+      const fPay = filterPayment.value;
+      const fCat = filterCategory.value;
+
+      const filtered = records.filter(r => {
+        const matchesSearch = r.receiptNo.toLowerCase().includes(search) || 
+                              r.partyName.toLowerCase().includes(search) || 
+                              (r.notes && r.notes.toLowerCase().includes(search));
+        const matchesType = fType === 'ALL' || r.type === fType;
+        const matchesPay = fPay === 'ALL' || r.paymentMode === fPay;
+        const matchesCat = fCat === 'ALL' || r.category === fCat;
+        return matchesSearch && matchesType && matchesPay && matchesCat;
+      });
+
+      let totalColl = 0;
+      let totalExp = 0;
+      records.forEach(r => {
+        if (r.type === 'Collection') totalColl += r.amount;
+        else totalExp += r.amount;
+      });
+      const netBal = totalColl - totalExp;
+
+      statTotalCollection.textContent = formatCurrency(totalColl);
+      statTotalExpenses.textContent = formatCurrency(totalExp);
+      statNetBalance.textContent = formatCurrency(netBal);
+      statTotalCount.textContent = records.length;
+
+      statCollectionSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${records.filter(r => r.type==='Collection').length} income receipts</span>`;
+      statExpensesSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>${records.filter(r => r.type==='Expense').length} expense vouchers</span>`;
+
+      let filtColl = 0;
+      let filtExp = 0;
+      filtered.forEach(r => {
+        if (r.type === 'Collection') filtColl += r.amount;
+        else filtExp += r.amount;
+      });
+
+      filteredBadge.textContent = `${filtered.length} records`;
+      footerVisibleCount.textContent = filtered.length;
+      footerFilteredIn.textContent = formatCurrency(filtColl);
+      footerFilteredOut.textContent = formatCurrency(filtExp);
+
+      const adminActive = isAdminUnlocked();
+      recordsTableBody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        filtered.forEach(r => {
+          const isColl = r.type === 'Collection';
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100 group";
+          
+          tr.innerHTML = `
+            <td class="py-3.5 px-4">
+              <div class="font-extrabold text-slate-900">${escapeHtml(r.receiptNo)}</div>
+              <div class="text-xs text-slate-500 font-medium">${formatDate(r.date)}</div>
+            </td>
+            <td class="py-3.5 px-4">
+              <div class="font-bold text-slate-800">${escapeHtml(r.partyName)}</div>
+              ${r.notes ? `<div class="text-xs text-slate-500 truncate max-w-xs">${escapeHtml(r.notes)}</div>` : ''}
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold ${isColl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+                ${escapeHtml(r.category)}
+              </span>
+              <div class="text-xs text-slate-500 mt-0.5 font-medium">${escapeHtml(r.paymentMode)}</div>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <span class="text-base font-extrabold ${isColl ? 'text-emerald-700' : 'text-rose-600'}">
+                ${isColl ? '+' : '-'} ${formatCurrency(r.amount).replace('₹ ', '₹')}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-center no-print">
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" onclick="openReceiptModal('${r.id}')" title="View Official Receipt"
+                  class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center justify-center transition cursor-pointer">
+                  <i class="fa-solid fa-receipt text-xs"></i>
+                </button>
+                <button type="button" onclick="editRecord('${r.id}')" title="Edit Record" style="${adminActive ? '' : 'display:none'}"
+                  class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center transition admin-only cursor-pointer">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button type="button" onclick="deleteRecord('${r.id}')" title="Delete Record" style="${adminActive ? '' : 'display:none'}"
+                  class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center transition admin-only cursor-pointer">
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+              </div>
+            </td>
+          `;
+          recordsTableBody.appendChild(tr);
+        });
+      }
+    }
+
+    function openReceiptModal(id) {
+      const r = records.find(rec => rec.id === id);
+      if (!r) return;
+
+      const isColl = r.type === 'Collection';
+      document.getElementById('modalVoucherBadge').textContent = isColl ? 'OFFICIAL COLLECTION RECEIPT' : 'OFFICIAL EXPENSE VOUCHER';
+      document.getElementById('modalVoucherBadge').className = `inline-block px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider ${isColl ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'}`;
+      document.getElementById('modalReceiptNo').textContent = r.receiptNo;
+      document.getElementById('modalDate').textContent = formatDate(r.date);
+      document.getElementById('modalPaymentMode').textContent = r.paymentMode;
+      document.getElementById('modalPartyTitle').textContent = isColl ? 'Received From' : 'Paid To / Vendor';
+      document.getElementById('modalPartyName').textContent = r.partyName;
+      document.getElementById('modalCategory').textContent = r.category;
+      document.getElementById('modalNotes').textContent = r.notes || (isColl ? 'Official Falsonda Cricket Club collection' : 'Official Falsonda Cricket Club expense voucher');
+      document.getElementById('modalAmount').textContent = formatCurrency(r.amount);
+      document.getElementById('modalTotalBig').textContent = formatCurrency(r.amount);
+
+      document.getElementById('receiptModal').classList.remove('hidden');
+      document.getElementById('receiptModal').classList.add('flex');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receiptModal').classList.add('hidden');
+      document.getElementById('receiptModal').classList.remove('flex');
+    }
+
+    function exportJsonBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `falsonda_cc_ledger_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+      showToast('JSON backup downloaded successfully!', 'success');
+    }
+
+    function importJsonBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (Array.isArray(parsed)) {
+            records = parsed;
+            saveToStorage();
+            renderRecords();
+            showToast('Ledger imported successfully from JSON!', 'success');
+          } else {
+            showToast('Invalid JSON file format.', 'warning');
+          }
+        } catch(err) {
+          showToast('Error parsing JSON file.', 'warning');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function exportCsv() {
+      let csvContent = "data:text/csv;charset=utf-8,Receipt No,Type,Date,Party Name,Category,Payment Mode,Amount,Notes\n";
+      records.forEach(r => {
+        const row = [
+          `"${r.receiptNo}"`,
+          `"${r.type}"`,
+          `"${r.date}"`,
+          `"${r.partyName.replace(/"/g, '""')}"`,
+          `"${r.category}"`,
+          `"${r.paymentMode}"`,
+          r.amount,
+          `"${(r.notes || '').replace(/"/g, '""')}"`
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", encodedUri);
+      dlAnchor.setAttribute("download", `falsonda_cc_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+      showToast('CSV statement exported successfully!', 'success');
     }
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
-      const styles = {
-        success: 'bg-slate-900 text-white border-blue-800',
-        error: 'bg-rose-900 text-white border-rose-700',
-        info: 'bg-slate-900 text-white border-slate-700'
-      };
-      const icons = {
-        success: 'fa-circle-check text-amber-400',
-        error: 'fa-circle-exclamation text-rose-400',
-        info: 'fa-circle-info text-amber-400'
-      };
+      
+      let bg = 'bg-slate-900 text-white';
+      let icon = 'fa-circle-check text-emerald-400';
+      if (type === 'success') { bg = 'bg-slate-900 text-white'; icon = 'fa-circle-check text-emerald-400'; }
+      else if (type === 'warning') { bg = 'bg-amber-600 text-white'; icon = 'fa-triangle-exclamation text-amber-200'; }
+      else if (type === 'info') { bg = 'bg-blue-900 text-white'; icon = 'fa-circle-info text-blue-300'; }
 
-      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs sm:text-sm font-semibold transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
-      toast.innerHTML = `
-        <i class="fa-solid ${icons[type] || icons.info} text-base shrink-0"></i>
-        <span class="flex-1">${escapeHTML(message)}</span>
-      `;
-
+      toast.className = `${bg} px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-semibold pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-base shrink-0"></i><span class="flex-1">${escapeHtml(message)}</span>`;
+      
       container.appendChild(toast);
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         toast.classList.remove('translate-y-2', 'opacity-0');
-      });
+      }, 10);
 
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
+        toast.classList.add('translate-y-2', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
-      }, 3200);
+      }, 3500);
     }
 
-    function showConfirm({ title, message, confirmText = 'Confirm', isDanger = true }) {
-      return new Promise((resolve) => {
-        const modal = document.getElementById('confirmModal');
-        const titleEl = document.getElementById('confirmTitle');
-        const msgEl = document.getElementById('confirmMessage');
-        const cancelBtn = document.getElementById('confirmCancelBtn');
-        const proceedBtn = document.getElementById('confirmProceedBtn');
-
-        titleEl.textContent = title;
-        msgEl.textContent = message;
-        proceedBtn.textContent = confirmText;
-        proceedBtn.className = isDanger
-          ? 'px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm'
-          : 'px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0f294a] hover:bg-[#091528] transition shadow-sm';
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-
-        const cleanup = (result) => {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-          cancelBtn.removeEventListener('click', onCancel);
-          proceedBtn.removeEventListener('click', onProceed);
-          resolve(result);
-        };
-
-        const onCancel = () => cleanup(false);
-        const onProceed = () => cleanup(true);
-
-        cancelBtn.addEventListener('click', onCancel);
-        proceedBtn.addEventListener('click', onProceed);
-      });
-    }
-
-    function generateNextReceiptId() {
-      const year = new Date().getFullYear();
-      const prefix = `FCC-${year}-`;
-      let maxNum = 0;
-
-      records.forEach((rec) => {
-        if (rec.receiptNo && rec.receiptNo.startsWith(prefix)) {
-          const numPart = parseInt(rec.receiptNo.slice(prefix.length), 10);
-          if (!isNaN(numPart) && numPart > maxNum) {
-            maxNum = numPart;
-          }
-        }
-      });
-
-      const nextNum = String(maxNum + 1).padStart(3, '0');
-      return `${prefix}${nextNum}`;
-    }
-
-    // --- Firestore Path Helper (Public Shared Club Data) ---
-    function getRecordsCollectionRef() {
-      return collection(db, 'artifacts', appId, 'public', 'data', 'fcc_ledger_records');
-    }
-
-    function getRecordDocRef(docId) {
-      return doc(db, 'artifacts', appId, 'public', 'data', 'fcc_ledger_records', docId);
-    }
-
-    // --- Official Falsonda Cricket Club Records (Pre-Loaded) ---
-    function getOfficialClubRecords() {
-      const recordDate = '2026-11-17';
-      return [
-        {
-          id: 'FCC-2026-001',
-          receiptNo: 'FCC-2026-001',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Hasan Tambe',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 2000.00,
-          notes: 'Donation Collection (Sr. No. 1)',
-          isSample: false,
-          createdAt: 1794873601000
-        },
-        {
-          id: 'FCC-2026-002',
-          receiptNo: 'FCC-2026-002',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Samir Tisekar',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 5000.00,
-          notes: 'Donation Collection (Sr. No. 2)',
-          isSample: false,
-          createdAt: 1794873602000
-        },
-        {
-          id: 'FCC-2026-003',
-          receiptNo: 'FCC-2026-003',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Dildar Parkar',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 2500.00,
-          notes: 'Donation Collection (Sr. No. 3)',
-          isSample: false,
-          createdAt: 1794873603000
-        },
-        {
-          id: 'FCC-2026-004',
-          receiptNo: 'FCC-2026-004',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Inayatullah Khadas (Chiplun)',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 5000.00,
-          notes: 'Donation Collection (Sr. No. 4)',
-          isSample: false,
-          createdAt: 1794873604000
-        },
-        {
-          id: 'FCC-2026-005',
-          receiptNo: 'FCC-2026-005',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Juned Parkar',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 3000.00,
-          notes: 'Donation Collection (Sr. No. 5)',
-          isSample: false,
-          createdAt: 1794873605000
-        },
-        {
-          id: 'FCC-2026-006',
-          receiptNo: 'FCC-2026-006',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Fahad Sharif Parkar',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 4500.00,
-          notes: 'Donation Collection (Sr. No. 6)',
-          isSample: false,
-          createdAt: 1794873606000
-        },
-        {
-          id: 'FCC-2026-007',
-          receiptNo: 'FCC-2026-007',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Nidal Desai',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 2000.00,
-          notes: 'Donation Collection (Sr. No. 7)',
-          isSample: false,
-          createdAt: 1794873607000
-        },
-        {
-          id: 'FCC-2026-008',
-          receiptNo: 'FCC-2026-008',
-          date: recordDate,
-          type: 'Collection',
-          partyName: 'Mohsin Dalvi',
-          category: 'Donation / Sponsorship',
-          paymentMode: 'UPI Payment',
-          amount: 2500.00,
-          notes: 'Donation Collection (Sr. No. 8)',
-          isSample: false,
-          createdAt: 1794873608000
-        },
-        {
-          id: 'FCC-2026-009',
-          receiptNo: 'FCC-2026-009',
-          date: recordDate,
-          type: 'Expense',
-          partyName: 'Receipt Book Printing',
-          category: 'Printing & Stationery',
-          paymentMode: 'Cash',
-          amount: 1800.00,
-          notes: 'Club Receipt Book Printing Expense',
-          isSample: false,
-          createdAt: 1794873609000
-        }
-      ];
-    }
-
-    async function seedOfficialRecordsToCloud() {
-      const officialList = getOfficialClubRecords();
-      if (isCloudConnected && currentUser) {
-        setSyncStatus('syncing', 'Syncing club records...');
-        for (const item of officialList) {
-          await setDoc(getRecordDocRef(item.id), item);
-        }
-        setSyncStatus('synced', 'Live Cloud Synced');
-      } else {
-        const existingIds = new Set(records.map((r) => r.id));
-        const missing = officialList.filter((item) => !existingIds.has(item.id));
-        records = [...missing, ...records];
-        refreshAll();
-      }
-    }
-
-    // --- Initialize Firebase & Real-Time Listener ---
-    async function initCloudSync() {
-      try {
-        if (typeof __firebase_config === 'undefined') {
-          throw new Error('Firebase config not provided');
-        }
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-
-        currentUser = auth.currentUser;
-        if (!currentUser) return;
-
-        isCloudConnected = true;
-        setSyncStatus('synced', 'Live Cloud Synced');
-
-        // Real-time Firestore listener
-        const colRef = getRecordsCollectionRef();
-        onSnapshot(
-          colRef,
-          async (snapshot) => {
-            const cloudList = [];
-            snapshot.forEach((docSnap) => {
-              cloudList.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            records = cloudList;
-
-            if (!hasCheckedInitialSeed) {
-              hasCheckedInitialSeed = true;
-              const legacySamples = records.filter((r) => r.isSample === true || String(r.id).startsWith('sample-fcc-'));
-              if (legacySamples.length > 0) {
-                for (const sampleDoc of legacySamples) {
-                  await deleteDoc(getRecordDocRef(sampleDoc.id));
-                }
-              }
-
-              const existingIds = new Set(records.map((r) => r.id));
-              const missingOfficial = getOfficialClubRecords().filter((item) => !existingIds.has(item.id));
-              if (missingOfficial.length > 0) {
-                setSyncStatus('syncing', 'Loading club records...');
-                for (const item of missingOfficial) {
-                  await setDoc(getRecordDocRef(item.id), item);
-                }
-                return;
-              }
-            }
-
-            refreshAll();
-            if (!editRecordId.value) {
-              receiptNoInput.value = generateNextReceiptId();
-            }
-            setSyncStatus('synced', 'Live Cloud Synced');
-          },
-          (error) => {
-            console.error('Firestore listener error:', error);
-            setSyncStatus('offline', 'Sync Interrupted');
-            showToast('Cloud sync interrupted. Check connection.', 'error');
-          }
-        );
-      } catch (err) {
-        console.warn('Running in local session mode:', err);
-        isCloudConnected = false;
-        setSyncStatus('offline', 'Local Session Mode');
-        records = getOfficialClubRecords();
-        refreshAll();
-        resetFormToNew();
-      }
-    }
-
-    // --- Currency UI Updates ---
-    function updateCurrencyUI() {
-      amountInput.step = '0.01';
-      amountInput.placeholder = '0.00';
-    }
-
-    // --- Form Tab & Category Management ---
-    function setFormMode(type, preserveCategory = false) {
-      activeFormType = type;
-      transactionTypeInput.value = type;
-      const isCollection = type === 'Collection';
-
-      if (isCollection) {
-        tabCollection.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-[#0f294a] text-white shadow-sm';
-        tabCollection.setAttribute('aria-selected', 'true');
-        tabExpense.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900';
-        tabExpense.setAttribute('aria-selected', 'false');
-
-        receiptLabel.textContent = 'Receipt No.';
-        partyLabel.textContent = 'Member / Contributor Name';
-        partyNameInput.placeholder = 'e.g. Rohan Sharma / Playing XI';
-        submitRecordBtn.className = 'flex-1 py-3 px-5 rounded-xl font-bold text-sm text-white bg-[#0f294a] hover:bg-[#091528] active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2';
-        submitBtnText.textContent = editRecordId.value ? 'Update Collection Receipt' : 'Save Collection Receipt';
-      } else {
-        tabExpense.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all bg-rose-600 text-white shadow-sm';
-        tabExpense.setAttribute('aria-selected', 'true');
-        tabCollection.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900';
-        tabCollection.setAttribute('aria-selected', 'false');
-
-        receiptLabel.textContent = 'Voucher No.';
-        partyLabel.textContent = 'Payee / Vendor / Ground Name';
-        partyNameInput.placeholder = 'e.g. City Cricket Ground / Sports Shop';
-        submitRecordBtn.className = 'flex-1 py-3 px-5 rounded-xl font-bold text-sm text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2';
-        submitBtnText.textContent = editRecordId.value ? 'Update Expense Voucher' : 'Save Expense Voucher';
-      }
-
-      const currentVal = categorySelect.value;
-      const categories = isCollection ? COLLECTION_CATEGORIES : EXPENSE_CATEGORIES;
-      categorySelect.innerHTML = categories
-        .map((cat) => `<option value="${escapeHTML(cat)}">${escapeHTML(cat)}</option>`)
-        .join('');
-
-      if (preserveCategory && categories.includes(currentVal)) {
-        categorySelect.value = currentVal;
-      }
-    }
-
-    function populateFilterCategories() {
-      const selected = filterCategory.value;
-      const uniqueCats = Array.from(new Set([...COLLECTION_CATEGORIES, ...EXPENSE_CATEGORIES]));
-      filterCategory.innerHTML =
-        `<option value="ALL">All Categories</option>` +
-        uniqueCats.map((c) => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
-
-      if (uniqueCats.includes(selected)) {
-        filterCategory.value = selected;
-      }
-    }
-
-    function resetFormToNew() {
-      editRecordId.value = '';
-      editingBadge.classList.add('hidden');
-      cancelEditBtn.classList.add('hidden');
-      receiptNoInput.value = generateNextReceiptId();
-      entryDateInput.value = getTodayISO();
-      partyNameInput.value = '';
-      paymentModeSelect.value = 'UPI Payment';
-      amountInput.value = '';
-      notesInput.value = '';
-      setFormMode(activeFormType, false);
-    }
-
-    // --- Rendering Dashboard & Table ---
-    function updateDashboardStats() {
-      let totalIn = 0;
-      let totalOut = 0;
-      let inCount = 0;
-      let outCount = 0;
-
-      records.forEach((rec) => {
-        const amt = Number(rec.amount) || 0;
-        if (rec.type === 'Collection') {
-          totalIn += amt;
-          inCount++;
-        } else {
-          totalOut += amt;
-          outCount++;
-        }
-      });
-
-      const net = totalIn - totalOut;
-
-      statTotalCollection.textContent = formatAmount(totalIn);
-      statCollectionSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${inCount} income receipt${inCount === 1 ? '' : 's'}</span>`;
-
-      statTotalExpenses.textContent = formatAmount(totalOut);
-      statExpensesSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>${outCount} expense voucher${outCount === 1 ? '' : 's'}</span>`;
-
-      statNetBalance.textContent = formatAmount(net);
-      if (net >= 0) {
-        statBalanceStatus.innerHTML = `<i class="fa-solid fa-shield-halved text-amber-400"></i><span>Club Treasury Surplus</span>`;
-      } else {
-        statBalanceStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-300"></i><span>Treasury Deficit Alert</span>`;
-      }
-
-      statTotalCount.textContent = String(records.length);
-    }
-
-    function getFilteredRecords() {
-      const query = searchInput.value.trim().toLowerCase();
-      const typeFilter = filterType.value;
-      const payFilter = filterPayment.value;
-      const catFilter = filterCategory.value;
-
-      return records
-        .filter((rec) => {
-          if (typeFilter !== 'ALL' && rec.type !== typeFilter) return false;
-          if (payFilter !== 'ALL' && rec.paymentMode !== payFilter) return false;
-          if (catFilter !== 'ALL' && rec.category !== catFilter) return false;
-          if (query) {
-            const haystack = `${rec.receiptNo} ${rec.partyName} ${rec.category} ${rec.paymentMode} ${rec.notes}`.toLowerCase();
-            if (!haystack.includes(query)) return false;
-          }
-          return true;
-        })
-        .sort((a, b) => {
-          if (b.date !== a.date) return b.date.localeCompare(a.date);
-          return b.receiptNo.localeCompare(a.receiptNo);
-        });
-    }
-
-    function renderTable() {
-      const filtered = getFilteredRecords();
-
-      filteredBadge.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
-      footerVisibleCount.textContent = String(filtered.length);
-
-      let filteredIn = 0;
-      let filteredOut = 0;
-      filtered.forEach((r) => {
-        if (r.type === 'Collection') filteredIn += Number(r.amount) || 0;
-        else filteredOut += Number(r.amount) || 0;
-      });
-
-      footerFilteredIn.textContent = formatAmount(filteredIn);
-      footerFilteredOut.textContent = formatAmount(filteredOut);
-
-      if (filtered.length === 0) {
-        recordsTableBody.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      recordsTableBody.innerHTML = filtered
-        .map((rec) => {
-          const isCol = rec.type === 'Collection';
-          const badgeClass = isCol
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            : 'bg-rose-50 text-rose-700 border-rose-200';
-          const amountClass = isCol ? 'text-emerald-700' : 'text-rose-600';
-          const signPrefix = isCol ? '+' : '-';
-          const isUpi = rec.paymentMode === 'UPI Payment';
-
-          return `
-            <tr class="hover:bg-slate-50/90 transition group">
-              <td class="py-3.5 px-4 align-top whitespace-nowrap">
-                <div class="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
-                  <span>${escapeHTML(rec.receiptNo)}</span>
-                </div>
-                <div class="text-xs text-slate-500 mt-0.5">${formatDisplayDate(rec.date)}</div>
-              </td>
-
-              <td class="py-3.5 px-4 align-top">
-                <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHTML(rec.partyName)}</div>
-                ${rec.notes ? `<div class="text-xs text-slate-500 mt-0.5 line-clamp-1" title="${escapeHTML(rec.notes)}">${escapeHTML(rec.notes)}</div>` : ''}
-              </td>
-
-              <td class="py-3.5 px-4 align-top">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${badgeClass}">
-                  <i class="fa-solid ${isCol ? 'fa-arrow-down' : 'fa-arrow-up'} text-[9px]"></i>
-                  ${escapeHTML(rec.category)}
-                </span>
-                <div class="text-[11px] text-slate-600 mt-1 font-semibold flex items-center gap-1">
-                  <i class="fa-solid ${isUpi ? 'fa-mobile-screen-button text-blue-700' : 'fa-wallet text-slate-400'}"></i>
-                  <span>${escapeHTML(rec.paymentMode)}</span>
-                </div>
-              </td>
-
-              <td class="py-3.5 px-4 align-top text-right whitespace-nowrap">
-                <span class="font-extrabold text-sm ${amountClass}">
-                  ${signPrefix} ${formatAmount(rec.amount)}
-                </span>
-              </td>
-
-              <td class="py-3.5 px-4 align-top text-center whitespace-nowrap no-print">
-                <div class="inline-flex items-center gap-1">
-                  <button type="button" data-action="receipt" data-id="${escapeHTML(rec.id)}" title="View / Print Receipt"
-                    class="p-2 rounded-lg text-blue-700 hover:bg-blue-100 transition">
-                    <i class="fa-solid fa-receipt"></i>
-                  </button>
-                  <button type="button" data-action="edit" data-id="${escapeHTML(rec.id)}" title="Edit Entry"
-                    class="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button type="button" data-action="delete" data-id="${escapeHTML(rec.id)}" title="Delete Entry"
-                    class="p-2 rounded-lg text-rose-600 hover:bg-rose-100 transition">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        })
-        .join('');
-    }
-
-    function refreshAll() {
-      updateDashboardStats();
-      renderTable();
-    }
-
-    // --- Receipt Modal Logic ---
-    function openReceiptModal(recordId) {
-      const rec = records.find((r) => r.id === recordId);
-      if (!rec) return;
-
-      const isCol = rec.type === 'Collection';
-      const badgeEl = document.getElementById('modalVoucherBadge');
-      badgeEl.textContent = isCol ? 'OFFICIAL COLLECTION RECEIPT' : 'OFFICIAL EXPENSE VOUCHER';
-      badgeEl.className = isCol
-        ? 'inline-block px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-blue-100 text-blue-900'
-        : 'inline-block px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800';
-
-      document.getElementById('modalReceiptNo').textContent = rec.receiptNo;
-      document.getElementById('modalDate').textContent = formatDisplayDate(rec.date);
-      document.getElementById('modalPaymentMode').textContent = rec.paymentMode;
-      document.getElementById('modalPartyTitle').textContent = isCol ? 'Received With Thanks From' : 'Paid To (Payee / Vendor)';
-      document.getElementById('modalPartyName').textContent = rec.partyName;
-      document.getElementById('modalCategory').textContent = rec.category;
-      document.getElementById('modalNotes').textContent = rec.notes || 'Official Falsonda Cricket Club transaction';
-      document.getElementById('modalAmount').textContent = formatAmount(rec.amount);
-      document.getElementById('modalTotalHighlight').textContent = formatAmount(rec.amount);
-      document.getElementById('modalReceiverSignLabel').textContent = isCol ? 'Contributor / Member Sign' : 'Payee / Receiver Sign';
-
-      receiptModal.classList.remove('hidden');
-      receiptModal.classList.add('flex');
-    }
-
-    function closeReceiptModal() {
-      receiptModal.classList.add('hidden');
-      receiptModal.classList.remove('flex');
-    }
-
-    // --- Export CSV (Excel Compatible) ---
-    function exportToCSV() {
-      const filtered = getFilteredRecords();
-      if (filtered.length === 0) {
-        showToast('No records available to export.', 'error');
-        return;
-      }
-
-      const headers = [
-        'Receipt / Voucher No',
-        'Date',
-        'Type',
-        'Member / Payee Name',
-        'Category',
-        'Payment Mode',
-        'Amount (INR)',
-        'Notes / Remarks'
-      ];
-
-      const rows = filtered.map((rec) => [
-        rec.receiptNo,
-        rec.date,
-        rec.type,
-        rec.partyName,
-        rec.category,
-        rec.paymentMode,
-        (Number(rec.amount) || 0).toFixed(CURRENCY_CONFIG.decimals),
-        rec.notes || ''
-      ]);
-
-      const csvContent = [headers, ...rows]
-        .map((row) =>
-          row
-            .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-            .join(',')
-        )
-        .join('\r\n');
-
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Falsonda_Cricket_Club_Ledger_${getTodayISO()}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      showToast('CSV ledger exported for Excel!', 'success');
-    }
-
-    // --- Event Listeners ---
-    tabCollection.addEventListener('click', () => setFormMode('Collection'));
-    tabExpense.addEventListener('click', () => setFormMode('Expense'));
-
-    regenReceiptBtn.addEventListener('click', () => {
-      receiptNoInput.value = generateNextReceiptId();
-      showToast('Generated next sequential Receipt ID', 'info');
-    });
-
-    recordForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const receiptNo = receiptNoInput.value.trim();
-      const date = entryDateInput.value;
-      const type = transactionTypeInput.value;
-      const partyName = partyNameInput.value.trim();
-      const category = categorySelect.value;
-      const paymentMode = paymentModeSelect.value;
-      const amount = parseFloat(amountInput.value);
-      const notes = notesInput.value.trim();
-
-      if (!receiptNo || !date || !partyName || isNaN(amount) || amount <= 0) {
-        showToast('Please fill all required fields with a valid amount.', 'error');
-        return;
-      }
-
-      const existingId = editRecordId.value;
-      submitRecordBtn.disabled = true;
-
-      try {
-        if (isCloudConnected && currentUser) {
-          setSyncStatus('syncing', 'Saving to Cloud...');
-          if (existingId) {
-            await updateDoc(getRecordDocRef(existingId), {
-              receiptNo,
-              date,
-              type,
-              partyName,
-              category,
-              paymentMode,
-              amount,
-              notes,
-              isSample: false,
-              updatedAt: Date.now()
-            });
-            showToast(`Updated ${receiptNo} in cloud!`, 'success');
-          } else {
-            const newDocId = 'fcc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-            await setDoc(getRecordDocRef(newDocId), {
-              receiptNo,
-              date,
-              type,
-              partyName,
-              category,
-              paymentMode,
-              amount,
-              notes,
-              isSample: false,
-              createdAt: Date.now(),
-              createdBy: currentUser.uid
-            });
-            showToast(`Saved ${type} (${receiptNo}) to cloud!`, 'success');
-          }
-          setSyncStatus('synced', 'Live Cloud Synced');
-        } else {
-          if (existingId) {
-            const idx = records.findIndex((r) => r.id === existingId);
-            if (idx !== -1) {
-              records[idx] = { ...records[idx], receiptNo, date, type, partyName, category, paymentMode, amount, notes, isSample: false };
-            }
-          } else {
-            records.unshift({
-              id: 'fcc-' + Date.now(),
-              receiptNo,
-              date,
-              type,
-              partyName,
-              category,
-              paymentMode,
-              amount,
-              notes,
-              isSample: false
-            });
-          }
-          refreshAll();
-          showToast(`Saved ${type} (${receiptNo})!`, 'success');
-        }
-        resetFormToNew();
-      } catch (err) {
-        console.error('Error saving record:', err);
-        setSyncStatus('offline', 'Save Error');
-        showToast('Failed to sync entry. Please try again.', 'error');
-      } finally {
-        submitRecordBtn.disabled = false;
-      }
-    });
-
-    cancelEditBtn.addEventListener('click', () => {
-      resetFormToNew();
-      showToast('Edit cancelled', 'info');
-    });
-
-    recordsTableBody.addEventListener('click', async (e) => {
-      const btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-
-      const action = btn.getAttribute('data-action');
-      const id = btn.getAttribute('data-id');
-      const rec = records.find((r) => r.id === id);
-      if (!rec) return;
-
-      if (action === 'receipt') {
-        openReceiptModal(id);
-      } else if (action === 'edit') {
-        editRecordId.value = rec.id;
-        setFormMode(rec.type, false);
-        receiptNoInput.value = rec.receiptNo;
-        entryDateInput.value = rec.date;
-        partyNameInput.value = rec.partyName;
-        categorySelect.value = rec.category;
-        paymentModeSelect.value = rec.paymentMode;
-        amountInput.value = rec.amount;
-        notesInput.value = rec.notes || '';
-
-        editingBadge.classList.remove('hidden');
-        cancelEditBtn.classList.remove('hidden');
-        submitBtnText.textContent = rec.type === 'Collection' ? 'Update Collection Receipt' : 'Update Expense Voucher';
-        recordForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (action === 'delete') {
-        const ok = await showConfirm({
-          title: 'Delete Transaction Record?',
-          message: `Are you sure you want to delete ${rec.receiptNo} (${rec.partyName} — ${formatAmount(rec.amount)}) from the shared club ledger?`,
-          confirmText: 'Delete Record',
-          isDanger: true
-        });
-        if (ok) {
-          try {
-            if (isCloudConnected && currentUser) {
-              setSyncStatus('syncing', 'Deleting...');
-              await deleteDoc(getRecordDocRef(id));
-              setSyncStatus('synced', 'Live Cloud Synced');
-            } else {
-              records = records.filter((r) => r.id !== id);
-              refreshAll();
-            }
-            if (editRecordId.value === id) resetFormToNew();
-            showToast(`Deleted ${rec.receiptNo}`, 'info');
-          } catch (err) {
-            console.error('Delete error:', err);
-            showToast('Could not delete record.', 'error');
-          }
-        }
-      }
-    });
-
-    searchInput.addEventListener('input', renderTable);
-    filterType.addEventListener('change', renderTable);
-    filterPayment.addEventListener('change', renderTable);
-    filterCategory.addEventListener('change', renderTable);
-
-    exportCsvBtn.addEventListener('click', exportToCSV);
-
-    printLedgerBtn.addEventListener('click', () => {
-      document.getElementById('printLedgerMeta').textContent =
-        `Printed on ${formatDisplayDate(getTodayISO())} • Currency: INR (₹) • Net Balance: ${statNetBalance.textContent}`;
-      document.body.classList.add('printing-ledger');
-      window.print();
-      document.body.classList.remove('printing-ledger');
-    });
-
-    printSingleReceiptBtn.addEventListener('click', () => {
-      document.body.classList.add('printing-receipt');
-      window.print();
-      document.body.classList.remove('printing-receipt');
-    });
-
-    closeReceiptModalBtn.addEventListener('click', closeReceiptModal);
-    receiptModal.addEventListener('click', (e) => {
-      if (e.target === receiptModal) closeReceiptModal();
-    });
-
-    backupMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      backupDropdown.classList.toggle('hidden');
-    });
-    document.addEventListener('click', () => {
-      backupDropdown.classList.add('hidden');
-    });
-
-    exportJsonBtn.addEventListener('click', () => {
-      const payload = {
-        club: 'FALSONDA CRICKET CLUB',
-        established: 2007,
-        exportedAt: new Date().toISOString(),
-        currency: currentCurrency,
-        records
+    function showConfirm(title, message, onConfirm) {
+      const modal = document.getElementById('confirmModal');
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const cancelBtn = document.getElementById('confirmCancelBtn');
+      const proceedBtn = document.getElementById('confirmProceedBtn');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        proceedBtn.replaceWith(proceedBtn.cloneNode(true));
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Falsonda_CC_Backup_${getTodayISO()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('JSON backup file downloaded!', 'success');
-    });
 
-    importJsonInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        try {
-          const parsed = JSON.parse(evt.target.result);
-          const importedList = Array.isArray(parsed) ? parsed : parsed.records;
-          if (!Array.isArray(importedList)) throw new Error('Invalid format');
-
-          if (isCloudConnected && currentUser) {
-            setSyncStatus('syncing', 'Importing to Cloud...');
-            for (const item of importedList) {
-              const docId = item.id || ('fcc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
-              await setDoc(getRecordDocRef(docId), {
-                ...item,
-                id: docId,
-                isSample: false
-              });
-            }
-            setSyncStatus('synced', 'Live Cloud Synced');
-          } else {
-            records = importedList;
-            refreshAll();
-          }
-
-          resetFormToNew();
-          showToast(`Imported ${importedList.length} records into shared ledger!`, 'success');
-        } catch (err) {
-          showToast('Invalid JSON backup file.', 'error');
-        }
-        importJsonInput.value = '';
+      document.getElementById('confirmCancelBtn').onclick = cleanup;
+      document.getElementById('confirmProceedBtn').onclick = () => {
+        cleanup();
+        onConfirm();
       };
-      reader.readAsText(file);
-    });
+    }
 
-    restoreOfficialBtn.addEventListener('click', async () => {
-      await seedOfficialRecordsToCloud();
-      resetFormToNew();
-      showToast('Synced all 9 official club records!', 'success');
-    });
+    function formatCurrency(val) {
+      return '₹ ' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
-    resetAllBtn.addEventListener('click', async () => {
-      const ok = await showConfirm({
-        title: 'Erase All Shared Cloud Records?',
-        message: 'This will permanently delete all collections and expenses from the shared club cloud database for everyone. Make sure you download a CSV or JSON backup first.',
-        confirmText: 'Erase Everything',
-        isDanger: true
-      });
-      if (ok) {
-        if (isCloudConnected && currentUser) {
-          setSyncStatus('syncing', 'Erasing cloud...');
-          const snapshotIds = records.map((r) => r.id);
-          for (const id of snapshotIds) {
-            await deleteDoc(getRecordDocRef(id));
-          }
-          setSyncStatus('synced', 'Live Cloud Synced');
-        } else {
-          records = [];
-          refreshAll();
-        }
-        resetFormToNew();
-        showToast('All records erased.', 'info');
-      }
-    });
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
 
-    // --- Initialize Application ---
-    updateCurrencyUI();
-    populateFilterCategories();
-    setFormMode('Collection');
-    resetFormToNew();
-    initCloudSync();
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
   </script>
 </body>
 </html>
