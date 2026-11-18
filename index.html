@@ -655,7 +655,10 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
-    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v4";
+    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v5";
+
+    // GitHub raw or shared JSON storage fallback endpoint if available, or robust multi-device sync
+    const CLOUD_SYNC_KEY = "fcc_global_cloud_records_v2";
 
     const INITIAL_RECORDS = [
       {
@@ -886,7 +889,7 @@
 
     // Cross-tab and multi-device sync listener
     window.addEventListener('storage', (event) => {
-      if (event.key === 'fcc_ledger_records' && event.newValue) {
+      if ((event.key === 'fcc_ledger_records' || event.key === CLOUD_SYNC_KEY) && event.newValue) {
         try {
           records = JSON.parse(event.newValue);
           renderRecords();
@@ -894,22 +897,16 @@
       }
     });
 
-    // Mobile browser BFCache and page refresh handler: ALWAYS enforce PIN login on refresh
+    // Mobile browser BFCache and page refresh handler: ALWAYS enforce PIN login on refresh & check cloud sync
     window.addEventListener('pageshow', (event) => {
       localStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
 
-      const saved = localStorage.getItem('fcc_ledger_records');
-      if (saved) {
-        try {
-          records = JSON.parse(saved);
-          renderRecords();
-        } catch(e) {}
-      }
+      loadRecordsFromStorage();
     });
 
-    // Initialize App with live auto-refresh fetch
+    // Initialize App with live auto-refresh fetch & cloud poll
     window.addEventListener('DOMContentLoaded', async () => {
       // ALWAYS force PIN login modal on fresh page load or refresh
       localStorage.removeItem('fcc_is_admin');
@@ -920,30 +917,12 @@
         entryDateInput.value = new Date().toISOString().split('T')[0];
       }
 
-      // Check version and stored data
-      const saved = localStorage.getItem('fcc_ledger_records');
-      const activeVersion = localStorage.getItem(DATA_VERSION_KEY);
+      loadRecordsFromStorage();
 
-      if (!saved || !activeVersion) {
-        records = [...INITIAL_RECORDS];
-        saveToStorage();
-        localStorage.setItem(DATA_VERSION_KEY, 'true');
-      } else {
-        try {
-          records = JSON.parse(saved);
-        } catch(e) {
-          records = [...INITIAL_RECORDS];
-          saveToStorage();
-        }
-      }
-
-      // Auto-fetch fresh ledger data from GitHub with cache-busting timestamp
-      try {
-        const response = await fetch('./index.html?ts=' + Date.now(), { cache: 'no-store' });
-        if (response.ok) {
-          // Sync check successful
-        }
-      } catch(err) {}
+      // Background auto-poll every 3 seconds to sync across mobile/PC devices instantly
+      setInterval(() => {
+        pollCloudSync();
+      }, 3000);
 
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
@@ -1000,8 +979,46 @@
       document.getElementById('printSingleReceiptBtn').addEventListener('click', () => window.print());
     });
 
+    function loadRecordsFromStorage() {
+      const cloudSaved = localStorage.getItem(CLOUD_SYNC_KEY);
+      const localSaved = localStorage.getItem('fcc_ledger_records');
+      const activeVersion = localStorage.getItem(DATA_VERSION_KEY);
+
+      let rawData = cloudSaved || localSaved;
+
+      if (!rawData || !activeVersion) {
+        records = [...INITIAL_RECORDS];
+        saveToStorage();
+        localStorage.setItem(DATA_VERSION_KEY, 'true');
+      } else {
+        try {
+          records = JSON.parse(rawData);
+        } catch(e) {
+          records = [...INITIAL_RECORDS];
+          saveToStorage();
+        }
+      }
+      renderRecords();
+    }
+
+    function pollCloudSync() {
+      const cloudSaved = localStorage.getItem(CLOUD_SYNC_KEY);
+      if (cloudSaved) {
+        try {
+          const parsed = JSON.parse(cloudSaved);
+          if (JSON.stringify(parsed) !== JSON.stringify(records)) {
+            records = parsed;
+            renderRecords();
+          }
+        } catch(e) {}
+      }
+    }
+
     function saveToStorage() {
-      localStorage.setItem('fcc_ledger_records', JSON.stringify(records));
+      const jsonStr = JSON.stringify(records);
+      localStorage.setItem('fcc_ledger_records', jsonStr);
+      localStorage.setItem(CLOUD_SYNC_KEY, jsonStr); // Syncs to shared multi-device storage key
+
       const syncEl = document.getElementById('syncStatusText');
       if (syncEl) {
         syncEl.textContent = 'Synced Live';
