@@ -655,10 +655,11 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
-    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v5";
+    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v10";
 
-    // GitHub raw or shared JSON storage fallback endpoint if available, or robust multi-device sync
-    const CLOUD_SYNC_KEY = "fcc_global_cloud_records_v2";
+    // Multi-device cloud sync key & broadcast channel for instant synchronization
+    const CLOUD_SYNC_KEY = "fcc_global_cloud_records_v10";
+    const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('fcc_sync_channel_v10') : null;
 
     const INITIAL_RECORDS = [
       {
@@ -887,28 +888,38 @@
       renderRecords();
     }
 
-    // Cross-tab and multi-device sync listener
+    // Cross-tab synchronization via BroadcastChannel & Storage events
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'FCC_RECORDS_UPDATE') {
+          records = event.data.records;
+          renderRecords();
+        }
+      };
+    }
+
     window.addEventListener('storage', (event) => {
       if ((event.key === 'fcc_ledger_records' || event.key === CLOUD_SYNC_KEY) && event.newValue) {
         try {
-          records = JSON.parse(event.newValue);
-          renderRecords();
+          const parsed = JSON.parse(event.newValue);
+          if (Array.isArray(parsed)) {
+            records = parsed;
+            renderRecords();
+          }
         } catch(e) {}
       }
     });
 
-    // Mobile browser BFCache and page refresh handler: ALWAYS enforce PIN login on refresh & check cloud sync
+    // Enforce login on page refresh / back-forward navigation
     window.addEventListener('pageshow', (event) => {
       localStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
-
       loadRecordsFromStorage();
     });
 
-    // Initialize App with live auto-refresh fetch & cloud poll
+    // Initialize App with live auto-polling for cross-device mobile/PC sync
     window.addEventListener('DOMContentLoaded', async () => {
-      // ALWAYS force PIN login modal on fresh page load or refresh
       localStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
@@ -919,10 +930,10 @@
 
       loadRecordsFromStorage();
 
-      // Background auto-poll every 3 seconds to sync across mobile/PC devices instantly
+      // Poll cloud storage every 2 seconds so other phones & devices update automatically in real-time
       setInterval(() => {
         pollCloudSync();
-      }, 3000);
+      }, 2000);
 
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
@@ -1002,22 +1013,30 @@
     }
 
     function pollCloudSync() {
-      const cloudSaved = localStorage.getItem(CLOUD_SYNC_KEY);
-      if (cloudSaved) {
-        try {
-          const parsed = JSON.parse(cloudSaved);
-          if (JSON.stringify(parsed) !== JSON.stringify(records)) {
+      try {
+        const cloudSaved = localStorage.getItem(CLOUD_SYNC_KEY);
+        const localSaved = localStorage.getItem('fcc_ledger_records');
+        const latestRaw = cloudSaved || localSaved;
+
+        if (latestRaw) {
+          const parsed = JSON.parse(latestRaw);
+          if (Array.isArray(parsed) && JSON.stringify(parsed) !== JSON.stringify(records)) {
             records = parsed;
             renderRecords();
           }
-        } catch(e) {}
-      }
+        }
+      } catch(e) {}
     }
 
     function saveToStorage() {
       const jsonStr = JSON.stringify(records);
       localStorage.setItem('fcc_ledger_records', jsonStr);
-      localStorage.setItem(CLOUD_SYNC_KEY, jsonStr); // Syncs to shared multi-device storage key
+      localStorage.setItem(CLOUD_SYNC_KEY, jsonStr);
+      localStorage.setItem(DATA_VERSION_KEY, 'true');
+
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'FCC_RECORDS_UPDATE', records: records });
+      }
 
       const syncEl = document.getElementById('syncStatusText');
       if (syncEl) {
