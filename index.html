@@ -655,6 +655,7 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
+    const DATA_VERSION_KEY = "fcc_data_version_v2";
 
     const INITIAL_RECORDS = [
       {
@@ -806,7 +807,7 @@
     const backupMenuBtn = document.getElementById('backupMenuBtn');
     const backupDropdown = document.getElementById('backupDropdown');
 
-    // PERMANENT REFRESH REQUIREMENT: Always reset login state to locked on page load/refresh
+    // Always reset login state on refresh
     sessionStorage.removeItem('fcc_is_admin');
 
     function isAdminUnlocked() {
@@ -886,14 +887,26 @@
       renderRecords();
     }
 
-    // Real-Time Cross-Tab Sync via localStorage & storage event listener
+    // Force real-time mobile and cross-tab synchronization
     window.addEventListener('storage', (event) => {
       if (event.key === 'fcc_ledger_records' && event.newValue) {
         try {
           records = JSON.parse(event.newValue);
           renderRecords();
-          showToast('Ledger updated live from another session!', 'info');
         } catch(e) {}
+      }
+    });
+
+    // Handle mobile BFCache restore (when user swipes back or re-opens tab on phone)
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        const saved = localStorage.getItem('fcc_ledger_records');
+        if (saved) {
+          try {
+            records = JSON.parse(saved);
+            renderRecords();
+          } catch(e) {}
+        }
       }
     });
 
@@ -901,16 +914,21 @@
     window.addEventListener('DOMContentLoaded', () => {
       entryDateInput.value = new Date().toISOString().split('T')[0];
 
+      // Check if data version needs initialization or reset
       const saved = localStorage.getItem('fcc_ledger_records');
-      if (saved) {
+      const currentVersion = localStorage.getItem(DATA_VERSION_KEY);
+
+      if (!saved || !currentVersion) {
+        records = [...INITIAL_RECORDS];
+        saveToStorage();
+        localStorage.setItem(DATA_VERSION_KEY, 'true');
+      } else {
         try {
           records = JSON.parse(saved);
         } catch(e) {
           records = [...INITIAL_RECORDS];
+          saveToStorage();
         }
-      } else {
-        records = [...INITIAL_RECORDS];
-        saveToStorage();
       }
 
       setupCategoriesForType('Collection');
@@ -918,7 +936,6 @@
       populateCategoryFilterOptions();
       renderRecords();
 
-      // Always show login modal on every load / refresh
       openAdminModal();
       disableAdminFeatures();
 
