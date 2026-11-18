@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Strict cache-busting headers to prevent mobile browsers from serving old cached copies -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>FALSONDA CRICKET CLUB — Collection & Expenses Record</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -887,15 +891,15 @@
       renderRecords();
     }
 
-    // Force login modal on every page refresh or device load
+    // Always reset session and force fresh cloud fetch on page load or refresh
     window.addEventListener('pageshow', (event) => {
       sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
-      fetchRecordsFromCloud();
+      fetchRecordsFromCloud(false);
     });
 
-    // Initialize App and fetch latest cloud data
+    // Initialize App
     window.addEventListener('DOMContentLoaded', async () => {
       sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
@@ -905,12 +909,13 @@
         entryDateInput.value = new Date().toISOString().split('T')[0];
       }
 
-      await fetchRecordsFromCloud();
+      // Immediately fetch latest live data from cloud (ignoring local browser cache)
+      await fetchRecordsFromCloud(false);
 
-      // Poll cloud storage every 4 seconds so mobile phones & guest devices stay perfectly synchronized in real-time
+      // Background live poll every 3 seconds so other phones & guest devices stay updated automatically
       setInterval(() => {
         fetchRecordsFromCloud(true);
-      }, 4000);
+      }, 3000);
 
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
@@ -967,12 +972,15 @@
       document.getElementById('printSingleReceiptBtn').addEventListener('click', () => window.print());
     });
 
-    // Cloud Fetch Function
+    // Cloud Fetch Function with Cache-Busting Timestamp
     async function fetchRecordsFromCloud(isBackgroundPoll = false) {
       try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN_ID}/latest`, {
+        const cacheBuster = `?t=${new Date().getTime()}`;
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN_ID}/latest${cacheBuster}`, {
           headers: {
-            'X-Master-Key': CLOUD_API_KEY
+            'X-Master-Key': CLOUD_API_KEY,
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache'
           }
         });
         if (response.ok) {
@@ -982,6 +990,9 @@
             if (JSON.stringify(remoteRecords) !== JSON.stringify(records)) {
               records = remoteRecords;
               renderRecords();
+              if (isBackgroundPoll) {
+                showToast('Ledger updated live from another device!', 'info');
+              }
             }
           }
         } else if (!isBackgroundPoll) {
@@ -1014,7 +1025,6 @@
       const syncEl = document.getElementById('syncStatusText');
       if (syncEl) syncEl.textContent = 'Syncing...';
 
-      // Save to local fallback first
       localStorage.setItem('fcc_ledger_records_fallback', JSON.stringify(records));
 
       try {
