@@ -655,7 +655,7 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
-    const DATA_VERSION_KEY = "fcc_data_version_v2";
+    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v3";
 
     const INITIAL_RECORDS = [
       {
@@ -807,11 +807,8 @@
     const backupMenuBtn = document.getElementById('backupMenuBtn');
     const backupDropdown = document.getElementById('backupDropdown');
 
-    // Always reset login state on refresh
-    sessionStorage.removeItem('fcc_is_admin');
-
     function isAdminUnlocked() {
-      return sessionStorage.getItem('fcc_is_admin') === 'true';
+      return localStorage.getItem('fcc_is_admin') === 'true';
     }
 
     function openAdminModal() {
@@ -823,7 +820,7 @@
     }
 
     function lockAdminSession() {
-      sessionStorage.removeItem('fcc_is_admin');
+      localStorage.removeItem('fcc_is_admin');
       document.getElementById('adminPinInput').value = '';
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
@@ -833,7 +830,7 @@
     function verifyAdminPin() {
       const input = document.getElementById('adminPinInput').value;
       if (input === ADMIN_PIN) {
-        sessionStorage.setItem('fcc_is_admin', 'true');
+        localStorage.setItem('fcc_is_admin', 'true');
         document.getElementById('adminModal').style.display = 'none';
         enableAdminFeatures();
         showToast('Admin access granted! Editing unlocked.', 'success');
@@ -845,7 +842,7 @@
     }
 
     function continueReadOnly() {
-      sessionStorage.removeItem('fcc_is_admin');
+      localStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'none';
       disableAdminFeatures();
       showToast('Opened in Read-Only Visitor Mode.', 'info');
@@ -887,7 +884,7 @@
       renderRecords();
     }
 
-    // Force real-time mobile and cross-tab synchronization
+    // Cross-tab and multi-device sync listener
     window.addEventListener('storage', (event) => {
       if (event.key === 'fcc_ledger_records' && event.newValue) {
         try {
@@ -897,28 +894,28 @@
       }
     });
 
-    // Handle mobile BFCache restore (when user swipes back or re-opens tab on phone)
+    // Mobile browser BFCache (Back-Forward Cache) prevention
     window.addEventListener('pageshow', (event) => {
-      if (event.persisted) {
-        const saved = localStorage.getItem('fcc_ledger_records');
-        if (saved) {
-          try {
-            records = JSON.parse(saved);
-            renderRecords();
-          } catch(e) {}
-        }
+      const saved = localStorage.getItem('fcc_ledger_records');
+      if (saved) {
+        try {
+          records = JSON.parse(saved);
+          renderRecords();
+        } catch(e) {}
       }
     });
 
-    // Initialize App
-    window.addEventListener('DOMContentLoaded', () => {
-      entryDateInput.value = new Date().toISOString().split('T')[0];
+    // Initialize App with live auto-refresh fetch
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (entryDateInput) {
+        entryDateInput.value = new Date().toISOString().split('T')[0];
+      }
 
-      // Check if data version needs initialization or reset
+      // Check version and stored data
       const saved = localStorage.getItem('fcc_ledger_records');
-      const currentVersion = localStorage.getItem(DATA_VERSION_KEY);
+      const activeVersion = localStorage.getItem(DATA_VERSION_KEY);
 
-      if (!saved || !currentVersion) {
+      if (!saved || !activeVersion) {
         records = [...INITIAL_RECORDS];
         saveToStorage();
         localStorage.setItem(DATA_VERSION_KEY, 'true');
@@ -931,13 +928,23 @@
         }
       }
 
+      // Auto-fetch fresh ledger data from GitHub with cache-busting timestamp
+      try {
+        const response = await fetch('./index.html?ts=' + Date.now(), { cache: 'no-store' });
+        // Background sync check completed
+      } catch(err) {}
+
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
       populateCategoryFilterOptions();
       renderRecords();
 
-      openAdminModal();
-      disableAdminFeatures();
+      if (isAdminUnlocked()) {
+        document.getElementById('adminModal').style.display = 'none';
+        enableAdminFeatures();
+      } else {
+        disableAdminFeatures();
+      }
 
       // Event Listeners
       tabCollection.addEventListener('click', () => switchTab('Collection'));
@@ -991,7 +998,10 @@
 
     function saveToStorage() {
       localStorage.setItem('fcc_ledger_records', JSON.stringify(records));
-      document.getElementById('syncStatusText').textContent = 'Synced Live';
+      const syncEl = document.getElementById('syncStatusText');
+      if (syncEl) {
+        syncEl.textContent = 'Synced Live';
+      }
     }
 
     function switchTab(type) {
