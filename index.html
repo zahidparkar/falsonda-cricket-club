@@ -655,7 +655,7 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
-    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v3";
+    const DATA_VERSION_KEY = "fcc_data_version_v2026_11_18_v4";
 
     const INITIAL_RECORDS = [
       {
@@ -894,8 +894,12 @@
       }
     });
 
-    // Mobile browser BFCache (Back-Forward Cache) prevention
+    // Mobile browser BFCache and page refresh handler: ALWAYS enforce PIN login on refresh
     window.addEventListener('pageshow', (event) => {
+      localStorage.removeItem('fcc_is_admin');
+      document.getElementById('adminModal').style.display = 'flex';
+      disableAdminFeatures();
+
       const saved = localStorage.getItem('fcc_ledger_records');
       if (saved) {
         try {
@@ -907,6 +911,11 @@
 
     // Initialize App with live auto-refresh fetch
     window.addEventListener('DOMContentLoaded', async () => {
+      // ALWAYS force PIN login modal on fresh page load or refresh
+      localStorage.removeItem('fcc_is_admin');
+      document.getElementById('adminModal').style.display = 'flex';
+      disableAdminFeatures();
+
       if (entryDateInput) {
         entryDateInput.value = new Date().toISOString().split('T')[0];
       }
@@ -931,20 +940,15 @@
       // Auto-fetch fresh ledger data from GitHub with cache-busting timestamp
       try {
         const response = await fetch('./index.html?ts=' + Date.now(), { cache: 'no-store' });
-        // Background sync check completed
+        if (response.ok) {
+          // Sync check successful
+        }
       } catch(err) {}
 
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
       populateCategoryFilterOptions();
       renderRecords();
-
-      if (isAdminUnlocked()) {
-        document.getElementById('adminModal').style.display = 'none';
-        enableAdminFeatures();
-      } else {
-        disableAdminFeatures();
-      }
 
       // Event Listeners
       tabCollection.addEventListener('click', () => switchTab('Collection'));
