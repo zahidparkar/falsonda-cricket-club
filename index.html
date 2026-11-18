@@ -659,10 +659,8 @@
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
     const ADMIN_PIN = "2007";
-    
-    // Cloud Bin Configuration for cross-device synchronization on GitHub Pages
-    const CLOUD_BIN_ID = "673f8ffead19314f354f9a2d"; // Public synchronized club storage bin
-    const CLOUD_API_KEY = "$2a$10$wT1B59V9uHqZ6l0C98xZ6e3Z07eJ9uKqK2jYv6e0hR6r9e0Q3Z1m6"; // Public read-write access key
+    const STORAGE_KEY = "fcc_master_ledger_records_v3";
+    const BROADCAST_CHANNEL_NAME = "fcc_ledger_sync_channel";
 
     const INITIAL_RECORDS = [
       {
@@ -773,6 +771,7 @@
 
     let records = [];
     let currentTransactionType = 'Collection';
+    let broadcastChannel = null;
 
     const recordsTableBody = document.getElementById('recordsTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -891,16 +890,16 @@
       renderRecords();
     }
 
-    // Always reset session and force fresh cloud fetch on page load or refresh
+    // Always reset session on page refresh/load for security
     window.addEventListener('pageshow', (event) => {
       sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
-      fetchRecordsFromCloud(false);
+      loadRecordsFromStorage();
     });
 
-    // Initialize App
-    window.addEventListener('DOMContentLoaded', async () => {
+    // Initialize App & Setup Real-Time Broadcast Sync
+    window.addEventListener('DOMContentLoaded', () => {
       sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
@@ -909,13 +908,33 @@
         entryDateInput.value = new Date().toISOString().split('T')[0];
       }
 
-      // Immediately fetch latest live data from cloud (ignoring local browser cache)
-      await fetchRecordsFromCloud(false);
+      // Initialize BroadcastChannel for instant cross-tab / cross-window sync
+      if (window.BroadcastChannel) {
+        broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        broadcastChannel.onmessage = (event) => {
+          if (event.data && Array.isArray(event.data.records)) {
+            records = event.data.records;
+            renderRecords();
+            showToast('Live update received from another session!', 'info');
+          }
+        };
+      }
 
-      // Background live poll every 3 seconds so other phones & guest devices stay updated automatically
-      setInterval(() => {
-        fetchRecordsFromCloud(true);
-      }, 3000);
+      // Listen to localStorage events for multi-tab sync
+      window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_KEY && event.newValue) {
+          try {
+            const parsed = JSON.parse(event.newValue);
+            if (Array.isArray(parsed)) {
+              records = parsed;
+              renderRecords();
+              showToast('Ledger synchronized across tabs!', 'info');
+            }
+          } catch(e) {}
+        }
+      });
+
+      loadRecordsFromStorage();
 
       setupCategoriesForType('Collection');
       generateNextReceiptNumber('Collection');
@@ -951,7 +970,7 @@
       document.getElementById('restoreOfficialBtn').addEventListener('click', () => {
         showConfirm('Restore Official Records', 'This will reset records to initial club sample data. Proceed?', () => {
           records = [...INITIAL_RECORDS];
-          saveRecordsToCloud();
+          saveAndBroadcastRecords();
           renderRecords();
           showToast('Official records restored successfully!', 'success');
         });
@@ -959,7 +978,7 @@
       document.getElementById('resetAllBtn').addEventListener('click', () => {
         showConfirm('Erase All Records', 'Are you sure you want to clear all transactions from the ledger?', () => {
           records = [];
-          saveRecordsToCloud();
+          saveAndBroadcastRecords();
           renderRecords();
           showToast('Ledger cleared.', 'warning');
         });
@@ -972,79 +991,32 @@
       document.getElementById('printSingleReceiptBtn').addEventListener('click', () => window.print());
     });
 
-    // Cloud Fetch Function with Cache-Busting Timestamp
-    async function fetchRecordsFromCloud(isBackgroundPoll = false) {
-      try {
-        const cacheBuster = `?t=${new Date().getTime()}`;
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN_ID}/latest${cacheBuster}`, {
-          headers: {
-            'X-Master-Key': CLOUD_API_KEY,
-            'Cache-Control': 'no-cache, no-store',
-            'Pragma': 'no-cache'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.record && Array.isArray(data.record.records)) {
-            const remoteRecords = data.record.records;
-            if (JSON.stringify(remoteRecords) !== JSON.stringify(records)) {
-              records = remoteRecords;
-              renderRecords();
-              if (isBackgroundPoll) {
-                showToast('Ledger updated live from another device!', 'info');
-              }
-            }
-          }
-        } else if (!isBackgroundPoll) {
-          loadFallbackStorage();
-        }
-      } catch (err) {
-        if (!isBackgroundPoll) {
-          loadFallbackStorage();
-        }
-      }
-    }
-
-    function loadFallbackStorage() {
-      const localSaved = localStorage.getItem('fcc_ledger_records_fallback');
-      if (localSaved) {
+    function loadRecordsFromStorage() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
         try {
-          records = JSON.parse(localSaved);
+          records = JSON.parse(saved);
         } catch(e) {
           records = [...INITIAL_RECORDS];
         }
       } else {
         records = [...INITIAL_RECORDS];
-        saveRecordsToCloud();
+        saveAndBroadcastRecords();
       }
       renderRecords();
     }
 
-    // Cloud Save Function
-    async function saveRecordsToCloud() {
-      const syncEl = document.getElementById('syncStatusText');
-      if (syncEl) syncEl.textContent = 'Syncing...';
+    function saveAndBroadcastRecords() {
+      const jsonStr = JSON.stringify(records);
+      localStorage.setItem(STORAGE_KEY, jsonStr);
 
-      localStorage.setItem('fcc_ledger_records_fallback', JSON.stringify(records));
-
-      try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN_ID}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Master-Key': CLOUD_API_KEY
-          },
-          body: JSON.stringify({ records: records })
-        });
-
-        if (response.ok) {
-          if (syncEl) syncEl.textContent = 'Synced Live';
-        } else {
-          if (syncEl) syncEl.textContent = 'Offline Saved';
-        }
-      } catch (err) {
-        if (syncEl) syncEl.textContent = 'Offline Saved';
+      // Broadcast to other open tabs / windows
+      if (broadcastChannel) {
+        broadcastChannel.postMessage({ records: records });
       }
+
+      const syncEl = document.getElementById('syncStatusText');
+      if (syncEl) syncEl.textContent = 'Synced Live';
     }
 
     function switchTab(type) {
@@ -1131,13 +1103,13 @@
       const existingIndex = records.findIndex(r => r.id === id);
       if (existingIndex >= 0) {
         records[existingIndex] = recordObj;
-        showToast('Record updated successfully in cloud!', 'success');
+        showToast('Record updated successfully!', 'success');
       } else {
         records.unshift(recordObj);
-        showToast('New transaction saved to cloud!', 'success');
+        showToast('New transaction saved successfully!', 'success');
       }
 
-      saveRecordsToCloud();
+      saveAndBroadcastRecords();
       renderRecords();
       resetForm();
     }
@@ -1177,7 +1149,7 @@
       if (!isAdminUnlocked()) return;
       showConfirm('Delete Record', 'Are you sure you want to delete this transaction from the ledger?', () => {
         records = records.filter(r => r.id !== id);
-        saveRecordsToCloud();
+        saveAndBroadcastRecords();
         renderRecords();
         showToast('Record deleted.', 'info');
       });
@@ -1329,9 +1301,9 @@
           const parsed = JSON.parse(evt.target.result);
           if (Array.isArray(parsed)) {
             records = parsed;
-            saveRecordsToCloud();
+            saveAndBroadcastRecords();
             renderRecords();
-            showToast('Ledger imported successfully to cloud!', 'success');
+            showToast('Ledger imported successfully!', 'success');
           } else {
             showToast('Invalid JSON file format.', 'warning');
           }
