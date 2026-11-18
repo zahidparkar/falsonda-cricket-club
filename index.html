@@ -481,14 +481,14 @@
 
         <!-- Records Table Container -->
         <div class="overflow-x-auto flex-1">
-          <table class="w-full text-left border-collapse">
+          <table class="w-full text-left border-collapse min-w-[650px]">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th class="py-3.5 px-4">Receipt & Date</th>
-                <th class="py-3.5 px-4">Member / Payee</th>
-                <th class="py-3.5 px-4">Category & Mode</th>
-                <th class="py-3.5 px-4 text-right">Amount</th>
-                <th class="py-3.5 px-4 text-center no-print">Actions</th>
+                <th class="py-3.5 px-4 w-32">Receipt & Date</th>
+                <th class="py-3.5 px-4">Donor / Payee Name & Contact</th>
+                <th class="py-3.5 px-4 w-44">Category & Mode</th>
+                <th class="py-3.5 px-4 text-right w-32">Amount</th>
+                <th class="py-3.5 px-4 text-center no-print w-28">Actions</th>
               </tr>
             </thead>
             <tbody id="recordsTableBody" class="divide-y divide-slate-100 text-sm">
@@ -654,7 +654,7 @@
 
   <!-- ==================== JAVASCRIPT LOGIC ==================== -->
   <script>
-    const ADMIN_PIN = "7277";
+    const ADMIN_PIN = "2007";
 
     const INITIAL_RECORDS = [
       {
@@ -666,40 +666,95 @@
         category: "Club Donation",
         paymentMode: "UPI Payment",
         amount: 2000,
-        notes: "Initial donation towards Falsonda Cricket Club ledger & kits."
+        notes: "Mobile: +96895467094"
       },
       {
         id: "rec_2",
         type: "Collection",
         receiptNo: "FCC-2026-002",
-        date: "2026-11-05",
+        date: "2026-11-03",
         partyName: "Samir Tisekar",
         category: "Club Donation",
         paymentMode: "Bank Transfer",
         amount: 5000,
-        notes: "Contribution for tournament practice sessions."
+        notes: "Mobile: +96565759580"
       },
       {
         id: "rec_3",
-        type: "Expense",
+        type: "Collection",
         receiptNo: "FCC-2026-003",
-        date: "2026-11-08",
-        partyName: "Furus Sports Store",
-        category: "Kit & Equipment",
-        paymentMode: "Cash",
-        amount: 1800,
-        notes: "Purchased leather match balls for practice."
+        date: "2026-11-05",
+        partyName: "Dildar Parkar",
+        category: "Club Donation",
+        paymentMode: "UPI Payment",
+        amount: 2500,
+        notes: "Mobile: +91 9820798270"
       },
       {
         id: "rec_4",
         type: "Collection",
         receiptNo: "FCC-2026-004",
-        date: "2026-11-12",
-        partyName: "Dildar Parkar",
-        category: "Match Fees",
+        date: "2026-11-08",
+        partyName: "Inayatullah Khadas (Chiplun)",
+        category: "Club Donation",
         paymentMode: "UPI Payment",
+        amount: 5000,
+        notes: "Mobile: +91 9145473116"
+      },
+      {
+        id: "rec_5",
+        type: "Collection",
+        receiptNo: "FCC-2026-005",
+        date: "2026-11-10",
+        partyName: "Juned Parkar",
+        category: "Club Donation",
+        paymentMode: "Bank Transfer",
+        amount: 3000,
+        notes: "Mobile: +971554103151"
+      },
+      {
+        id: "rec_6",
+        type: "Collection",
+        receiptNo: "FCC-2026-006",
+        date: "2026-11-12",
+        partyName: "Fahad Sharif Parkar",
+        category: "Club Donation",
+        paymentMode: "UPI Payment",
+        amount: 4500,
+        notes: "Mobile: +91 9594493562"
+      },
+      {
+        id: "rec_7",
+        type: "Collection",
+        receiptNo: "FCC-2026-007",
+        date: "2026-11-14",
+        partyName: "Nidal Desai",
+        category: "Club Donation",
+        paymentMode: "UPI Payment",
+        amount: 2000,
+        notes: "Mobile: +91 7387544341"
+      },
+      {
+        id: "rec_8",
+        type: "Collection",
+        receiptNo: "FCC-2026-008",
+        date: "2026-11-15",
+        partyName: "Mohsin Dalvi",
+        category: "Club Donation",
+        paymentMode: "Cash",
         amount: 2500,
-        notes: "Tournament entry fee installment."
+        notes: "General contribution"
+      },
+      {
+        id: "rec_9",
+        type: "Expense",
+        receiptNo: "FCC-EXP-001",
+        date: "2026-11-02",
+        partyName: "Furus Printing Press",
+        category: "Printing & Stationery",
+        paymentMode: "Cash",
+        amount: 1800,
+        notes: "Receipt Book Printing"
       }
     ];
 
@@ -751,9 +806,11 @@
     const backupMenuBtn = document.getElementById('backupMenuBtn');
     const backupDropdown = document.getElementById('backupDropdown');
 
-    // Admin & Read-Only Mode Functions
+    // PERMANENT REFRESH REQUIREMENT: Always reset login state to locked on page load/refresh
+    sessionStorage.removeItem('fcc_is_admin');
+
     function isAdminUnlocked() {
-      return localStorage.getItem('fcc_is_admin') === 'true';
+      return sessionStorage.getItem('fcc_is_admin') === 'true';
     }
 
     function openAdminModal() {
@@ -765,7 +822,7 @@
     }
 
     function lockAdminSession() {
-      localStorage.removeItem('fcc_is_admin');
+      sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminPinInput').value = '';
       document.getElementById('adminModal').style.display = 'flex';
       disableAdminFeatures();
@@ -775,7 +832,7 @@
     function verifyAdminPin() {
       const input = document.getElementById('adminPinInput').value;
       if (input === ADMIN_PIN) {
-        localStorage.setItem('fcc_is_admin', 'true');
+        sessionStorage.setItem('fcc_is_admin', 'true');
         document.getElementById('adminModal').style.display = 'none';
         enableAdminFeatures();
         showToast('Admin access granted! Editing unlocked.', 'success');
@@ -787,7 +844,7 @@
     }
 
     function continueReadOnly() {
-      localStorage.removeItem('fcc_is_admin');
+      sessionStorage.removeItem('fcc_is_admin');
       document.getElementById('adminModal').style.display = 'none';
       disableAdminFeatures();
       showToast('Opened in Read-Only Visitor Mode.', 'info');
@@ -809,6 +866,7 @@
       ledgerSection.classList.add('lg:col-span-7');
 
       document.getElementById('visitorBanner').classList.add('hidden');
+      renderRecords();
     }
 
     function disableAdminFeatures() {
@@ -820,13 +878,24 @@
         el.style.display = 'none';
       });
 
-      // Expand Ledger Table to full width when Digital Entry Form is hidden
       const ledgerSection = document.getElementById('ledgerSection');
       ledgerSection.classList.remove('lg:col-span-7');
       ledgerSection.classList.add('lg:col-span-12');
 
       document.getElementById('visitorBanner').classList.remove('hidden');
+      renderRecords();
     }
+
+    // Real-Time Cross-Tab Sync via localStorage & storage event listener
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'fcc_ledger_records' && event.newValue) {
+        try {
+          records = JSON.parse(event.newValue);
+          renderRecords();
+          showToast('Ledger updated live from another session!', 'info');
+        } catch(e) {}
+      }
+    });
 
     // Initialize App
     window.addEventListener('DOMContentLoaded', () => {
@@ -849,13 +918,9 @@
       populateCategoryFilterOptions();
       renderRecords();
 
-      // Check saved Admin PIN status
-      if (isAdminUnlocked()) {
-        document.getElementById('adminModal').style.display = 'none';
-        enableAdminFeatures();
-      } else {
-        disableAdminFeatures();
-      }
+      // Always show login modal on every load / refresh
+      openAdminModal();
+      disableAdminFeatures();
 
       // Event Listeners
       tabCollection.addEventListener('click', () => switchTab('Collection'));
@@ -1077,8 +1142,10 @@
       statNetBalance.textContent = formatCurrency(netBal);
       statTotalCount.textContent = records.length;
 
-      statCollectionSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${records.filter(r => r.type==='Collection').length} income receipts</span>`;
-      statExpensesSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>${records.filter(r => r.type==='Expense').length} expense vouchers</span>`;
+      const collCount = records.filter(r => r.type === 'Collection').length;
+      const expCount = records.filter(r => r.type === 'Expense').length;
+      statCollectionSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${collCount} Donors (Total ₹26,500)</span>`;
+      statExpensesSub.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>${expCount} expense vouchers</span>`;
 
       let filtColl = 0;
       let filtExp = 0;
@@ -1105,26 +1172,26 @@
           tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100 group";
           
           tr.innerHTML = `
-            <td class="py-3.5 px-4">
+            <td class="py-3.5 px-4 align-top">
               <div class="font-extrabold text-slate-900">${escapeHtml(r.receiptNo)}</div>
-              <div class="text-xs text-slate-500 font-medium">${formatDate(r.date)}</div>
+              <div class="text-xs text-slate-500 font-medium mt-0.5">${formatDate(r.date)}</div>
             </td>
-            <td class="py-3.5 px-4">
-              <div class="font-bold text-slate-800">${escapeHtml(r.partyName)}</div>
-              ${r.notes ? `<div class="text-xs text-slate-500 truncate max-w-xs">${escapeHtml(r.notes)}</div>` : ''}
+            <td class="py-3.5 px-4 align-top">
+              <div class="font-bold text-slate-900">${escapeHtml(r.partyName)}</div>
+              ${r.notes ? `<div class="text-xs text-blue-700 font-semibold mt-0.5 flex items-center gap-1"><i class="fa-solid fa-phone text-[10px]"></i><span>${escapeHtml(r.notes)}</span></div>` : ''}
             </td>
-            <td class="py-3.5 px-4">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold ${isColl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+            <td class="py-3.5 px-4 align-top">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${isColl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
                 ${escapeHtml(r.category)}
               </span>
-              <div class="text-xs text-slate-500 mt-0.5 font-medium">${escapeHtml(r.paymentMode)}</div>
+              <div class="text-xs text-slate-500 mt-1 font-medium">${escapeHtml(r.paymentMode)}</div>
             </td>
-            <td class="py-3.5 px-4 text-right">
+            <td class="py-3.5 px-4 text-right align-top">
               <span class="text-base font-extrabold ${isColl ? 'text-emerald-700' : 'text-rose-600'}">
                 ${isColl ? '+' : '-'} ${formatCurrency(r.amount).replace('₹ ', '₹')}
               </span>
             </td>
-            <td class="py-3.5 px-4 text-center no-print">
+            <td class="py-3.5 px-4 text-center align-top no-print">
               <div class="flex items-center justify-center gap-1.5">
                 <button type="button" onclick="openReceiptModal('${r.id}')" title="View Official Receipt"
                   class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center justify-center transition cursor-pointer">
